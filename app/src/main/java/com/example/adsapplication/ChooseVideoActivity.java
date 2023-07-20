@@ -11,6 +11,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
 
@@ -34,6 +35,10 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
         setContentView(R.layout.activity_choose_video);
 
         videoView = findViewById(R.id.videoView);
+
+        MediaController mediaController = new MediaController(this);
+        videoView.setMediaController(mediaController);
+        mediaController.setAnchorView(videoView);
 
         textView = findViewById(R.id.textView);
 

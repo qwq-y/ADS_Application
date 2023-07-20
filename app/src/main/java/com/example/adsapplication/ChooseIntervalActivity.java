@@ -6,8 +6,10 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.MediaController;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
@@ -38,8 +40,22 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         okButton.setOnClickListener(this);
 
         videoView = findViewById(R.id.videoView);
+
+        MediaController mediaController = new MediaController(this);
+        videoView.setMediaController(mediaController);
+        mediaController.setAnchorView(videoView);
+
         String videoUriStr = getIntent().getStringExtra("videoUriStr");
+        Log.d(TAG, "videoUriStr" + videoUriStr);
         videoView.setVideoURI(Uri.parse(videoUriStr));
+        videoView.start();
+        videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+            @Override
+            public boolean onError(MediaPlayer mp, int what, int extra) {
+                Log.d(TAG, "Error occurred while playing video. What: " + what + ", Extra: " + extra);
+                return false;
+            }
+        });
 
         rangeSeekBar = findViewById(R.id.rangeSeekBar);
         rangeSeekBar.setOnRangeSeekBarChangeListener(new RangeSeekBar.OnRangeSeekBarChangeListener() {
