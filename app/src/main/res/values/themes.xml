@@ -6,4 +6,5 @@
     </style>
 
     <style name="Theme.ADSApplication" parent="Base.Theme.ADSApplication" />
+
 </resources>
