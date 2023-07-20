@@ -7,18 +7,26 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.TextView;
 import android.widget.VideoView;
 
-public class ChooseVideoActivity extends AppCompatActivity implements View.OnClickListener{
+public class ChooseVideoActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final int REQUEST_VIDEO_PICK = 1;
+    private String TAG = "ww";
+
     private VideoView videoView;
     private ImageButton addButton;
     private Button okButton;
     private Button retryButton;
+    private TextView textView;
+
+    private static final int REQUEST_VIDEO_PICK = 1;
+
+    private String videoUriStr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +34,8 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
         setContentView(R.layout.activity_choose_video);
 
         videoView = findViewById(R.id.videoView);
+
+        textView = findViewById(R.id.textView);
 
         addButton = findViewById(R.id.addButton);
         addButton.setOnClickListener(this);
@@ -43,11 +53,9 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
-            // 跳转至区间选择页面（同时传递数据）
+            // 跳转至区间选择页面（同时传递视频 uri）
             Intent intent = new Intent(this, ChooseIntervalActivity.class);
-            Bundle bundle = new Bundle();
-            bundle.putString("message", "video chosen");
-            intent.putExtras(bundle);
+            intent.putExtra("videoUriStr", videoUriStr);
             startActivity(intent);
         } else if (v.getId() == R.id.retryButton) {
             // 重新选择视频
@@ -71,12 +79,11 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
 
             // 显示视频
             Uri videoUri = data.getData();
+            videoUriStr = videoUri.toString();
             displaySelectedVideo(videoUri);
 
-            // 隐藏加号按钮
+            // 隐藏加号按钮、显示确定和重选按钮
             addButton.setVisibility(View.GONE);
-
-            // 显示确定和重选按钮
             okButton.setVisibility(View.VISIBLE);
             retryButton.setVisibility(View.VISIBLE);
         }

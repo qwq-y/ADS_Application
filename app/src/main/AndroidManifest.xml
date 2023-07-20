@@ -17,6 +17,9 @@
         android:theme="@style/Theme.ADSApplication"
         tools:targetApi="31">
         <activity
+            android:name=".BrushingActivity"
+            android:exported="false" />
+        <activity
             android:name=".ChooseIntervalActivity"
             android:exported="false" />
 
