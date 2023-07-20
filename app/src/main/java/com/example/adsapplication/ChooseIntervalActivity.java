@@ -25,9 +25,8 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
     private Button okButton;
     private RangeSeekBar rangeSeekBar;
 
-    private int videoDuration; // 视频总时长
-    private int startValue; // 区间选择的开始点
-    private int endValue; // 区间选择的结束点
+    private int totalDuration;    // 原视频的总时长
+    private int startMillis, endMillis, selectedDuration;    // 区间选择的开始点、结束点、总时长
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,12 +47,15 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         String videoUriStr = getIntent().getStringExtra("videoUriStr");
         Log.d(TAG, "videoUriStr" + videoUriStr);
         videoView.setVideoURI(Uri.parse(videoUriStr));
-        videoView.start();
-        videoView.setOnErrorListener(new MediaPlayer.OnErrorListener() {
+
+        // 设置视频准备就绪监听器：获取视频总时长，设置滑块最大值，播放视频
+        videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
-            public boolean onError(MediaPlayer mp, int what, int extra) {
-                Log.d(TAG, "Error occurred while playing video. What: " + what + ", Extra: " + extra);
-                return false;
+            public void onPrepared(MediaPlayer mediaPlayer) {
+                totalDuration = mediaPlayer.getDuration();
+                rangeSeekBar.setMax(totalDuration);
+
+                videoView.start();
             }
         });
 
@@ -61,23 +63,38 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         rangeSeekBar.setOnRangeSeekBarChangeListener(new RangeSeekBar.OnRangeSeekBarChangeListener() {
             @Override
             public void onProgressChanged(
-                    final RangeSeekBar seekBar, final int progressStart, final int progressEnd, final boolean fromUser) { }
+                    final RangeSeekBar seekBar, final int progressStart, final int progressEnd, final boolean fromUser) {
+
+                // 根据滑块的位置信息计算视频起始时间、结束时间、总时长
+                startMillis = (int) ((float) progressStart / seekBar.getMax() * totalDuration);
+                endMillis = (int) ((float) progressEnd / seekBar.getMax() * totalDuration);
+                selectedDuration = endMillis - startMillis;
+
+                // 将视频跳转到选定的区间的起始处
+                videoView.seekTo(startMillis);
+
+            }
 
             @Override
-            public void onStartTrackingTouch(final RangeSeekBar seekBar) { }
+            public void onStartTrackingTouch(final RangeSeekBar seekBar) {
+                // 开始触摸滑块时调用
+            }
 
             @Override
-            public void onStopTrackingTouch(final RangeSeekBar seekBar) { }
+            public void onStopTrackingTouch(final RangeSeekBar seekBar) {
+                // 停止触摸滑块时调用
+            }
         });
     }
 
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
-            Intent intent = new Intent(this, BrushingActivity.class);
-            intent.putExtra("startValue", startValue);
-            intent.putExtra("endValue", endValue);
-            startActivity(intent);
+            textView.setText("[" + startMillis + ", " + endMillis + "], 总时长: " + selectedDuration + " ms");
+//            Intent intent = new Intent(this, BrushingActivity.class);
+//            intent.putExtra("startMillis", startMillis);
+//            intent.putExtra("endMillis", endMillis);
+//            startActivity(intent);
         }
     }
 
