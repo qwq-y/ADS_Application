@@ -1,27 +1,26 @@
 package com.example.adsapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.MediaController;
-import android.widget.PopupWindow;
-import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
 
-import java.util.HashMap;
+import androidx.appcompat.app.AppCompatActivity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 import it.sephiroth.android.library.rangeseekbar.RangeSeekBar;
 
@@ -36,7 +35,7 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
     private String videoUriStr;    // 原视频资源
     private int totalDuration;    // 原视频的总时长
-    private int startMillis, endMillis, selectedDuration;    // 区间选择的开始点、结束点、总时长
+    private int startMillis, endMillis, selectedDuration;    // 区间选择的开始点、结束点、总时长（毫秒）
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,11 +48,6 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         okButton.setOnClickListener(this);
 
         videoView = findViewById(R.id.videoView);
-
-        // 添加媒体播放器
-        MediaController mediaController = new MediaController(this);
-        videoView.setMediaController(mediaController);
-        mediaController.setAnchorView(videoView);
 
         // 从上个页面获取视频
         videoUriStr = getIntent().getStringExtra("videoUriStr");
@@ -115,14 +109,89 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         });
     }
 
+    private String getCroppedVideoUriStr() {
+        // TODO: 视频裁剪
+        return videoUriStr;
+    }
+
+    public String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
+
+        String videoPath = getFilePathFromUri(ChooseIntervalActivity.this, uri);
+
+        long timeInMicroseconds = timeInMillisecond * 1000;
+
+        MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
+
+        try {
+            // 设置要获取帧的视频路径
+            mediaMetadataRetriever.setDataSource(videoPath);
+
+            // 获取指定时间点的帧，单位为微秒
+            Bitmap frame = mediaMetadataRetriever.getFrameAtTime(timeInMicroseconds);
+
+            return getUriFromBitmap(frame).toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } finally {
+            // 释放资源
+            mediaMetadataRetriever.release();
+        }
+    }
+
+    public String getFilePathFromUri(Context context, Uri uri) {
+
+        if (uri == null) return null;
+
+        String filePath = null;
+        String[] projection = {MediaStore.Video.Media.DATA};
+        ContentResolver contentResolver = context.getContentResolver();
+
+        try (Cursor cursor = contentResolver.query(uri, projection, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
+                filePath = cursor.getString(columnIndex);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return filePath;
+    }
+
+    public Uri getUriFromBitmap(Bitmap bitmap) {
+        String fileName = "image.jpg"; // 自定义文件名
+        File file = new File(getExternalCacheDir(), fileName); // 或者使用其他文件目录，例如 getFilesDir()
+        try {
+            FileOutputStream fos = new FileOutputStream(file);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
+            fos.flush();
+            fos.close();
+            return Uri.fromFile(file);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
-            textView.setText("[" + startMillis + ", " + endMillis + "], 总时长: " + selectedDuration + " ms");
-//            Intent intent = new Intent(this, BrushingActivity.class);
-//            intent.putExtra("startMillis", startMillis);
-//            intent.putExtra("endMillis", endMillis);
-//            startActivity(intent);
+//            textView.setText("[" + startMillis + ", " + endMillis + "], 总时长: " + selectedDuration + " 毫秒");
+
+            String frameUriStr = null;
+            try {
+                frameUriStr = getVideoFrame(Uri.parse(videoUriStr), startMillis);
+            } catch (IOException e) {
+                Log.e(TAG, "clickOkButton: " + e.getMessage());
+            }
+
+            Intent intent = new Intent(this, BrushingActivity.class);
+            intent.putExtra("frameUriStr", frameUriStr);
+            intent.putExtra("croppedVideoUriStr", getCroppedVideoUriStr());
+            startActivity(intent);
+
         }
     }
 }
