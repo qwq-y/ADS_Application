@@ -33,15 +33,10 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
     private VideoView videoView;
     private Button okButton;
     private RangeSeekBar rangeSeekBar;
-    private PopupWindow popupWindow;
-    private ImageView frameImageView;
 
     private String videoUriStr;    // 原视频资源
     private int totalDuration;    // 原视频的总时长
     private int startMillis, endMillis, selectedDuration;    // 区间选择的开始点、结束点、总时长
-
-    private HashMap<Integer, Bitmap> frameCache = new HashMap<>();    // 缓存视频帧
-    private int frameInterval = 1000; // 获取帧的间隔（ms）
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,17 +69,8 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
                 rangeSeekBar.setMax(totalDuration);
                 // 播放视频
                 videoView.start();
-                // 视频预缓冲
-                preCacheFrames(0, totalDuration, frameInterval);
             }
         });
-
-        // 初始化 PopupWindow
-        View popupView = getLayoutInflater().inflate(R.layout.popup_frame_preview, null);
-        frameImageView = popupView.findViewById(R.id.frameImageView);
-        popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, false);
-        popupWindow.setTouchable(false);
 
         rangeSeekBar = findViewById(R.id.rangeSeekBar);
 
@@ -95,93 +81,38 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
             public void onProgressChanged(
                     final RangeSeekBar seekBar, final int progressStart, final int progressEnd, final boolean fromUser) {
 
-                // 根据滑块的位置信息计算视频起始时间、结束时间、总时长
-                startMillis = (int) ((float) progressStart / seekBar.getMax() * totalDuration);
-                endMillis = (int) ((float) progressEnd / seekBar.getMax() * totalDuration);
+                int startMillisNew = (int) ((float) progressStart / seekBar.getMax() * totalDuration);
+                int endMillisNew = (int) ((float) progressEnd / seekBar.getMax() * totalDuration);
+
+                // 手动判断哪个滑块移动了
+                int startDiff = startMillisNew > startMillis ? startMillisNew - startMillis : startMillis - startMillisNew;
+                int endDiff = endMillisNew > endMillis ? endMillisNew - endMillis : endMillis - endMillisNew;
+                if (startDiff >= endDiff) {
+                    // 从左边滑块处播放视频
+                    videoView.seekTo(startMillis);
+                } else {
+                    // 从右边滑块播放视频
+                    videoView.seekTo(endMillis);
+                }
+
+                // 更新视频起始时间、结束时间、总时长
+                startMillis = startMillisNew;
+                endMillis = endMillisNew;
                 selectedDuration = endMillis - startMillis;
 
-                // 将视频跳转到选定的区间的起始处
-                videoView.seekTo(startMillis);
-
-                // 缓存中查找帧
-                Bitmap cachedFrame = frameCache.get(progressStart);
-                if (cachedFrame != null) {
-                    // 缓存中有帧，直接设置到ImageView中
-                    frameImageView.setImageBitmap(cachedFrame);
-                } else {
-//                    // 缓存中没有帧，执行异步任务获取帧
-//                    GetVideoFrameTask task = new GetVideoFrameTask();
-//                    task.execute(progressStart);
-                }
             }
 
             @Override
             public void onStartTrackingTouch(final RangeSeekBar seekBar) {
-                // 开始触摸滑块时显示 PopupWindow
-                popupWindow.showAtLocation(videoView, Gravity.CENTER, 0, -videoView.getHeight() / 3);
+                // 开始触摸滑块时
             }
 
             @Override
             public void onStopTrackingTouch(final RangeSeekBar seekBar) {
-                // 停止触摸滑块时隐藏 PopupWindow
-                popupWindow.dismiss();
+                // 停止触摸滑块时
+                videoView.seekTo(startMillis);
             }
         });
-    }
-
-    // 预缓冲视频帧
-    private void preCacheFrames(int startMs, int endMs, int interval) {
-        Log.d(TAG, "caching");
-        for (int timeMs = startMs; timeMs <= endMs; timeMs += interval) {
-            if (!frameCache.containsKey(timeMs)) {
-                Bitmap frame = getVideoFrame(timeMs);
-                if (frame != null) {
-                    frameCache.put(timeMs, frame);
-                }
-            }
-        }
-        Log.d(TAG, "cached: " + frameCache.size());
-    }
-
-    // 获取视频指定位置的帧
-    private Bitmap getVideoFrame(int timeMs) {
-        Bitmap frame = frameCache.get(timeMs);
-        if (frame == null) {
-            MediaMetadataRetriever retriever = null;
-            try {
-                retriever = new MediaMetadataRetriever();
-                retriever.setDataSource(ChooseIntervalActivity.this, Uri.parse(videoUriStr));
-
-                // 获取视频帧，单位：微秒
-                frame = retriever.getFrameAtTime(timeMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
-
-                // 将帧添加到缓存中
-                frameCache.put(timeMs, frame);
-
-            } catch (Exception e) {
-                Log.d(TAG, "get video frame: " + e.getMessage());
-            } finally {
-                if (retriever != null) {
-                    retriever = null;
-                }
-            }
-        }
-
-        return frame;
-    }
-
-    // 异步获取视频帧
-    private class GetVideoFrameTask extends AsyncTask<Integer, Void, Bitmap> {
-        @Override
-        protected Bitmap doInBackground(Integer... params) {
-            int timeMs = params[0];
-            return getVideoFrame(timeMs);
-        }
-
-        @Override
-        protected void onPostExecute(Bitmap frame) {
-            frameImageView.setImageBitmap(frame);
-        }
     }
 
     @Override
