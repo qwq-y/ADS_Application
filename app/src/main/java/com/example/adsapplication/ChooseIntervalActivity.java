@@ -21,6 +21,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.VideoView;
 
+import java.util.HashMap;
+
 import it.sephiroth.android.library.rangeseekbar.RangeSeekBar;
 
 public class ChooseIntervalActivity extends AppCompatActivity implements View.OnClickListener {
@@ -37,6 +39,9 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
     private String videoUriStr;    // 原视频资源
     private int totalDuration;    // 原视频的总时长
     private int startMillis, endMillis, selectedDuration;    // 区间选择的开始点、结束点、总时长
+
+    private HashMap<Integer, Bitmap> frameCache = new HashMap<>();    // 缓存视频帧
+    private int frameInterval = 1000; // 获取帧的间隔（ms）
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,18 +64,22 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         videoUriStr = getIntent().getStringExtra("videoUriStr");
         videoView.setVideoURI(Uri.parse(videoUriStr));
 
-        // 设置视频准备就绪监听器：获取视频总时长，设置滑块最大值，播放视频
+        // 设置视频准备就绪监听器
         videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer mediaPlayer) {
+                // 获取视频总时长
                 totalDuration = mediaPlayer.getDuration();
+                // 设置滑块最大值
                 rangeSeekBar.setMax(totalDuration);
-
+                // 播放视频
                 videoView.start();
+                // 视频预缓冲
+                preCacheFrames(0, totalDuration, frameInterval);
             }
         });
 
-        // 初始化PopupWindow
+        // 初始化 PopupWindow
         View popupView = getLayoutInflater().inflate(R.layout.popup_frame_preview, null);
         frameImageView = popupView.findViewById(R.id.frameImageView);
         popupWindow = new PopupWindow(popupView, ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -81,6 +90,7 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
         // 设置滑块监听事件
         rangeSeekBar.setOnRangeSeekBarChangeListener(new RangeSeekBar.OnRangeSeekBarChangeListener() {
+
             @Override
             public void onProgressChanged(
                     final RangeSeekBar seekBar, final int progressStart, final int progressEnd, final boolean fromUser) {
@@ -90,56 +100,70 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
                 endMillis = (int) ((float) progressEnd / seekBar.getMax() * totalDuration);
                 selectedDuration = endMillis - startMillis;
 
-                // 异步获取视频帧并显示在PopupWindow中
-                GetVideoFrameTask task = new GetVideoFrameTask();
-                task.execute(progressStart);
-
                 // 将视频跳转到选定的区间的起始处
                 videoView.seekTo(startMillis);
 
+                // 缓存中查找帧
+                Bitmap cachedFrame = frameCache.get(progressStart);
+                if (cachedFrame != null) {
+                    // 缓存中有帧，直接设置到ImageView中
+                    frameImageView.setImageBitmap(cachedFrame);
+                } else {
+//                    // 缓存中没有帧，执行异步任务获取帧
+//                    GetVideoFrameTask task = new GetVideoFrameTask();
+//                    task.execute(progressStart);
+                }
             }
 
             @Override
             public void onStartTrackingTouch(final RangeSeekBar seekBar) {
-                // 开始触摸滑块时显示PopupWindow
+                // 开始触摸滑块时显示 PopupWindow
                 popupWindow.showAtLocation(videoView, Gravity.CENTER, 0, -videoView.getHeight() / 3);
             }
 
             @Override
             public void onStopTrackingTouch(final RangeSeekBar seekBar) {
-                // 停止触摸滑块时隐藏PopupWindow
+                // 停止触摸滑块时隐藏 PopupWindow
                 popupWindow.dismiss();
             }
         });
     }
 
-    @Override
-    public void onClick(View v) {
-        if (v.getId() == R.id.okButton) {
-            textView.setText("[" + startMillis + ", " + endMillis + "], 总时长: " + selectedDuration + " ms");
-//            Intent intent = new Intent(this, BrushingActivity.class);
-//            intent.putExtra("startMillis", startMillis);
-//            intent.putExtra("endMillis", endMillis);
-//            startActivity(intent);
+    // 预缓冲视频帧
+    private void preCacheFrames(int startMs, int endMs, int interval) {
+        Log.d(TAG, "caching");
+        for (int timeMs = startMs; timeMs <= endMs; timeMs += interval) {
+            if (!frameCache.containsKey(timeMs)) {
+                Bitmap frame = getVideoFrame(timeMs);
+                if (frame != null) {
+                    frameCache.put(timeMs, frame);
+                }
+            }
         }
+        Log.d(TAG, "cached: " + frameCache.size());
     }
 
     // 获取视频指定位置的帧
     private Bitmap getVideoFrame(int timeMs) {
-        MediaMetadataRetriever retriever = null;
-        Bitmap frame = null;
-        try {
-            retriever = new MediaMetadataRetriever();
-            retriever.setDataSource(videoUriStr);
+        Bitmap frame = frameCache.get(timeMs);
+        if (frame == null) {
+            MediaMetadataRetriever retriever = null;
+            try {
+                retriever = new MediaMetadataRetriever();
+                retriever.setDataSource(ChooseIntervalActivity.this, Uri.parse(videoUriStr));
 
-            // 获取视频帧，单位：微秒
-            frame = retriever.getFrameAtTime(timeMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
+                // 获取视频帧，单位：微秒
+                frame = retriever.getFrameAtTime(timeMs * 1000, MediaMetadataRetriever.OPTION_CLOSEST);
 
-        } catch (Exception e) {
-            Log.d(TAG, "get video frame: " + e.getMessage());
-        } finally {
-            if (retriever != null) {
-                retriever = null;
+                // 将帧添加到缓存中
+                frameCache.put(timeMs, frame);
+
+            } catch (Exception e) {
+                Log.d(TAG, "get video frame: " + e.getMessage());
+            } finally {
+                if (retriever != null) {
+                    retriever = null;
+                }
             }
         }
 
@@ -160,4 +184,14 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         }
     }
 
+    @Override
+    public void onClick(View v) {
+        if (v.getId() == R.id.okButton) {
+            textView.setText("[" + startMillis + ", " + endMillis + "], 总时长: " + selectedDuration + " ms");
+//            Intent intent = new Intent(this, BrushingActivity.class);
+//            intent.putExtra("startMillis", startMillis);
+//            intent.putExtra("endMillis", endMillis);
+//            startActivity(intent);
+        }
+    }
 }
