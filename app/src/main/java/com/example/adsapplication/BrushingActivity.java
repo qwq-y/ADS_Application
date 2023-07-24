@@ -39,6 +39,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     String croppedVideoUriStr;
 
     private Bitmap baseBitmap;
+    private Bitmap paintedBitmap;
     private Canvas canvas;
     private Path path;
     private Paint paint;
@@ -58,13 +59,13 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
 
             // 转为 bitmap
             InputStream inputStream = getContentResolver().openInputStream(frameUri);
-            Bitmap frameBitmap = BitmapFactory.decodeStream(inputStream);
+            baseBitmap = BitmapFactory.decodeStream(inputStream);
             inputStream.close();
 
-            // 复制一份用于绘制
-            baseBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true);
-            canvas = new Canvas(baseBitmap);
-            imageView.setImageBitmap(baseBitmap);
+            // 复制一份没有用于绘制
+            paintedBitmap = baseBitmap.copy(Bitmap.Config.ARGB_8888, true);
+            canvas = new Canvas(paintedBitmap);
+            imageView.setImageBitmap(paintedBitmap);
 
         } catch (Exception e) {
             Log.e(TAG, "iamgeView: " + e.getMessage());
@@ -97,7 +98,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             String filePath = Environment.getExternalStorageDirectory() + File.separator + "drawing_data.png";
             try {
                 FileOutputStream fos = new FileOutputStream(filePath);
-                baseBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                paintedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
                 fos.flush();
                 fos.close();
                 Toast.makeText(BrushingActivity.this, "Drawing saved to " + filePath, Toast.LENGTH_SHORT).show();
@@ -107,9 +108,9 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             }
         } else if (v.getId() == R.id.retryButton) {
             path.reset();
-            canvas = new Canvas(baseBitmap);
-            imageView.setImageBitmap(baseBitmap);
-            imageView.invalidate();
+            paintedBitmap = baseBitmap.copy(Bitmap.Config.ARGB_8888, true);
+            canvas = new Canvas(paintedBitmap);
+            imageView.setImageBitmap(paintedBitmap);
         } else if (v.getId() == R.id.drawButton) {
             imageView.setOnTouchListener(new View.OnTouchListener() {
                 private float[] point = new float[2];
