@@ -36,7 +36,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:textSize="15dp"
-            android:text="请绘制生成区域（已拿起画笔）" />
+            android:text="请绘制生成区域（点击画笔按钮）" />
 
         <LinearLayout
             android:layout_width="match_parent"

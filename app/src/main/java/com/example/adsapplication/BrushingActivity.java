@@ -36,15 +36,15 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     private Button retryButton;
     private TextView textView;
 
-    String frameUriStr;
-    String croppedVideoUriStr;
+    private String frameUriStr;
+    private String croppedVideoUriStr;
 
     private Bitmap baseBitmap;
     private Bitmap paintedBitmap;
     private Canvas canvas;
     private Path path;
     private Paint paint;
-    private boolean isBrushOn = true;
+    private boolean isBrushOn = false;
 
     private List<List<Float>> pathPointsList = new ArrayList<>();
     private String pathJsonStr;
@@ -67,7 +67,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             baseBitmap = BitmapFactory.decodeStream(inputStream);
             inputStream.close();
 
-            // 复制一份没有用于绘制
+            // 复制一份用于绘制
             paintedBitmap = baseBitmap.copy(Bitmap.Config.ARGB_8888, true);
             canvas = new Canvas(paintedBitmap);
             imageView.setImageBitmap(paintedBitmap);
@@ -170,7 +170,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             } else {
                 // 禁用绘制功能
                 imageView.setOnTouchListener(null);
-                textView.setText("请绘制生成区域（已放下画笔）");
+                textView.setText("请绘制生成区域（点击画笔按钮）");
             }
         }
     }
