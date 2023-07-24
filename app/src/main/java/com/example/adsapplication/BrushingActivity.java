@@ -1,43 +1,34 @@
 package com.example.adsapplication;
 
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.widget.VideoView;
 
-import com.example.adsapplication.views.DrawingView;
+import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
 
 public class BrushingActivity extends AppCompatActivity implements View.OnClickListener {
 
     private String TAG = "ww";
 
-    private DrawingView drawingView;
     private ImageView imageView;
     private ImageButton drawButton;
     private Button okButton;
@@ -61,22 +52,19 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
         imageView = findViewById(R.id.imageView);
         try {
             croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
-//            Uri frameUri = Uri.parse(getIntent().getStringExtra("frameUriStr"));
-//            frameUriStr = frameUri.toString();
-//            imageView.setImageURI(frameUri);
 
-            // Load the image URI
             Uri frameUri = Uri.parse(getIntent().getStringExtra("frameUriStr"));
+            frameUriStr = frameUri.toString();
+
+            // 转为 bitmap
             InputStream inputStream = getContentResolver().openInputStream(frameUri);
             Bitmap frameBitmap = BitmapFactory.decodeStream(inputStream);
             inputStream.close();
 
-            // Create a copy of the loaded bitmap for drawing
+            // 复制一份用于绘制
             baseBitmap = frameBitmap.copy(Bitmap.Config.ARGB_8888, true);
             canvas = new Canvas(baseBitmap);
             imageView.setImageBitmap(baseBitmap);
-
-            frameUriStr = frameUri.toString();
 
         } catch (Exception e) {
             Log.e(TAG, "iamgeView: " + e.getMessage());
@@ -99,7 +87,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
         paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         paint.setColor(Color.BLACK);
         paint.setStyle(Paint.Style.STROKE);
-        paint.setStrokeWidth(5);
+        paint.setStrokeWidth(20);
 
     }
 
@@ -118,13 +106,24 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
                 Toast.makeText(BrushingActivity.this, "Failed to save drawing", Toast.LENGTH_SHORT).show();
             }
         } else if (v.getId() == R.id.retryButton) {
-
+            path.reset();
+            canvas = new Canvas(baseBitmap);
+            imageView.setImageBitmap(baseBitmap);
+            imageView.invalidate();
         } else if (v.getId() == R.id.drawButton) {
             imageView.setOnTouchListener(new View.OnTouchListener() {
+                private float[] point = new float[2];
+
                 @Override
                 public boolean onTouch(View v, MotionEvent event) {
-                    float x = event.getX();
-                    float y = event.getY();
+                    Matrix matrix = new Matrix();
+                    imageView.getImageMatrix().invert(matrix);
+                    point[0] = event.getX();
+                    point[1] = event.getY();
+                    matrix.mapPoints(point);
+
+                    float x = point[0];
+                    float y = point[1];
 
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
