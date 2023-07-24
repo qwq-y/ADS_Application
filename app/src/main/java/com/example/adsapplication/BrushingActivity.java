@@ -34,8 +34,12 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
         setContentView(R.layout.activity_brushing);
 
         imageView = findViewById(R.id.imageView);
-        Uri frameUri = Uri.parse(getIntent().getStringExtra("frameUriStr"));
-        imageView.setImageURI(frameUri);
+        try {
+            Uri frameUri = Uri.parse(getIntent().getStringExtra("frameUriStr"));
+            imageView.setImageURI(frameUri);
+        } catch (Exception e) {
+            Log.e(TAG, "iamgeView: " + e.getMessage());
+        }
 
         textView = findViewById(R.id.textView);
 

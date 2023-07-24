@@ -116,15 +116,13 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
     public String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
 
-        String videoPath = getFilePathFromUri(ChooseIntervalActivity.this, uri);
-
         long timeInMicroseconds = timeInMillisecond * 1000;
 
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
 
         try {
-            // 设置要获取帧的视频路径
-            mediaMetadataRetriever.setDataSource(videoPath);
+            // 设置要获取帧的视频Uri
+            mediaMetadataRetriever.setDataSource(ChooseIntervalActivity.this, uri);
 
             // 获取指定时间点的帧，单位为微秒
             Bitmap frame = mediaMetadataRetriever.getFrameAtTime(timeInMicroseconds);
@@ -132,32 +130,12 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
             return getUriFromBitmap(frame).toString();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            Log.e(TAG, "getVideoFrame: " + e.getMessage());
             return null;
         } finally {
             // 释放资源
             mediaMetadataRetriever.release();
         }
-    }
-
-    public String getFilePathFromUri(Context context, Uri uri) {
-
-        if (uri == null) return null;
-
-        String filePath = null;
-        String[] projection = {MediaStore.Video.Media.DATA};
-        ContentResolver contentResolver = context.getContentResolver();
-
-        try (Cursor cursor = contentResolver.query(uri, projection, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
-                filePath = cursor.getString(columnIndex);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return filePath;
     }
 
     public Uri getUriFromBitmap(Bitmap bitmap) {
