@@ -48,16 +48,16 @@ public class SendingActivity extends AppCompatActivity {
         imageSourcePath = getIntent().getStringExtra("imageSourcePath");
         textSource = getIntent().getStringExtra("textSource");
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    sendRequest();
-                } catch (Exception e) {
-                    Log.d(TAG, "exception in click run: " + e.getMessage());
-                }
-            }
-        }).start();
+//        new Thread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    sendRequest();
+//                } catch (Exception e) {
+//                    Log.d(TAG, "exception in click run: " + e.getMessage());
+//                }
+//            }
+//        }).start();
 
     }
 

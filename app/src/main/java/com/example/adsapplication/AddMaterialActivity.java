@@ -1,41 +1,44 @@
 package com.example.adsapplication;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
-import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.content.pm.ActivityInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.text.Editable;
-import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.ImageButton;
 
-import java.io.File;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.zhihu.matisse.Matisse;
+import com.zhihu.matisse.MimeType;
+import com.zhihu.matisse.engine.impl.GlideEngine;
+import com.zhihu.matisse.filter.Filter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class AddMaterialActivity extends AppCompatActivity implements View.OnClickListener {
 
     private final String TAG = "ww";
 
-    private static final int REQUEST_IMAGE_PICK = 1;
+    private int REQUEST_CODE_CHOOSE = 23;
 
     private String croppedVideoUriStr;    // 裁剪后的视频 uri
     private String frameUriStr;    // 视频第一帧 uri
     private String pathJsonStr;    // 绘制的路径
 
-    private String imageSourcePath;    // 添加的图片素材路径
     private String textSource;    // 添加的文本素材
+//    private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
+    List<Uri> mSelected;
 
-    private ImageView imageView;
     private EditText editText;
     private Button okButton;
     private Button retryButton;
+    private ImageButton addImageButton;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +49,8 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
         frameUriStr = getIntent().getStringExtra("frameUriStr");
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
 
-        imageView = findViewById(R.id.imageView);
-        imageView.setOnClickListener(this);
+        addImageButton = findViewById(R.id.addImageButton);
+        addImageButton.setOnClickListener(this);
 
         editText = findViewById(R.id.editText);
 
@@ -56,6 +59,7 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
         retryButton = findViewById(R.id.retryButton);
         retryButton.setOnClickListener(this);
+
 
     }
 
@@ -69,50 +73,42 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
             intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
             intent.putExtra("frameUriStr", frameUriStr);
             intent.putExtra("pathJsonStr", pathJsonStr);
-            intent.putExtra("imageSourcePath", imageSourcePath);
+            // TODO: toString
+//            intent.putExtra("selectedImageUris", imageSourceUriStrs.toString());
             intent.putExtra("textSource", textSource);
             startActivity(intent);
 
         } else if (v.getId() == R.id.retryButton) {
 
-            imageView.setImageResource(R.drawable.ic_add);
-            imageSourcePath = null;
+            // TODO: 清空图片
             editText.setText("");
             textSource = null;
 
-        } else if (v.getId() == R.id.imageView) {
-            Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-            startActivityForResult(intent, REQUEST_IMAGE_PICK);
+        } else if (v.getId() == R.id.addImageButton) {
+
+            Matisse.from(this)
+                    .choose(MimeType.ofImage()) // 仅选择图片类型
+                    .countable(true) // 显示选择图片的数量
+                    .maxSelectable(9) // 最多可选择的图片数量
+                    .capture(false) // 是否显示拍照
+                    .gridExpectedSize(getResources().getDimensionPixelSize(R.dimen.grid_expected_size))
+                    .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) // 限制选择图片的方向
+                    .thumbnailScale(0.85f) // 缩略图缩放比例
+                    .imageEngine(new GlideEngine()) // 图片加载引擎
+                    .forResult(REQUEST_CODE_CHOOSE); // 设置请求码，用于在onActivityResult中接收结果
+
+            Log.d(TAG, "over");
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(TAG, "call back");
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_PICK && resultCode == RESULT_OK && data != null) {
-            // 获取选择的图片URI
-            Uri selectedImageUri = data.getData();
-            if (selectedImageUri != null) {
-                // 将URI转换为图片路径
-                imageSourcePath = getPathFromUri(selectedImageUri);
-
-                // 将图片显示在ImageView上
-                Bitmap bitmap = BitmapFactory.decodeFile(imageSourcePath);
-                imageView.setImageBitmap(bitmap);
-            }
+        if (requestCode == REQUEST_CODE_CHOOSE && resultCode == RESULT_OK) {
+            mSelected = Matisse.obtainResult(data);
+            Log.d("Matisse", "mSelected: " + mSelected);
         }
     }
 
-    private String getPathFromUri(Uri contentUri) {
-        String[] proj = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(contentUri, proj, null, null, null);
-        if (cursor != null) {
-            int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-            cursor.moveToFirst();
-            String filePath = cursor.getString(columnIndex);
-            cursor.close();
-            return filePath;
-        }
-        return null;
-    }
 }
