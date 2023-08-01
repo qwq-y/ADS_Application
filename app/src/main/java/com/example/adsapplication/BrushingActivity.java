@@ -25,6 +25,8 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
+
 import org.json.JSONArray;
 
 import java.io.InputStream;
@@ -51,7 +53,6 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     private Paint paint;
 
     private List<List<Float>> pathPointsList;
-    private String pathJsonStr;
 
     private AlertDialog brushAlertDialog;
     private float brushWidth = 25f;
@@ -186,15 +187,8 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
 
-            JSONArray jsonArray = new JSONArray();
-            for (List<Float> point : pathPointsList) {
-                JSONArray pointArray = new JSONArray();
-                pointArray.put(point.get(0));
-                pointArray.put(point.get(1));
-                jsonArray.put(pointArray);
-            }
-
-            pathJsonStr = jsonArray.toString();
+            Gson gson = new Gson();
+            String pathJsonStr = gson.toJson(pathPointsList);
 
             Intent intent = new Intent(this, AddMaterialActivity.class);
             intent.putExtra("pathJsonStr", pathJsonStr);

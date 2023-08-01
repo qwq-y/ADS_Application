@@ -18,6 +18,7 @@ import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.gson.Gson;
 import com.zhihu.matisse.Matisse;
 import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.engine.impl.GlideEngine;
@@ -35,7 +36,7 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
     private String pathJsonStr;    // 绘制的路径
 
     private String textSource;    // 添加的文本素材
-//    private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
+    private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
 
     private EditText editText;
     private Button okButton;
@@ -73,11 +74,12 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
             textSource = editText.getText().toString();
 
             Intent intent = new Intent(this, SendingActivity.class);
+            Gson gson = new Gson();
+            String imageSourceUriJsonStr = gson.toJson(imageSourceUriStrs);
+            intent.putExtra("imageSourceUriJsonStr", imageSourceUriJsonStr);
             intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
             intent.putExtra("frameUriStr", frameUriStr);
             intent.putExtra("pathJsonStr", pathJsonStr);
-            // TODO: toString
-//            intent.putExtra("selectedImageUris", imageSourceUriStrs.toString());
             intent.putExtra("textSource", textSource);
             startActivity(intent);
 
@@ -114,6 +116,7 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
                 Log.d(TAG, "多张图片：" + clipData.getItemCount());
                 for (int i = 0; i < clipData.getItemCount(); i++) {
                     Uri currentUri = clipData.getItemAt(i).getUri();
+                    imageSourceUriStrs.add(currentUri.toString());
                 }
             } else {
                 Uri currentUri = data.getData();
