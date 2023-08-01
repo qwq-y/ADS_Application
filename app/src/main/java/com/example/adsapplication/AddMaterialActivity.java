@@ -1,9 +1,15 @@
 package com.example.adsapplication;
 
+import static android.provider.MediaStore.getPickImagesMaxLimit;
+
+import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -24,15 +30,12 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
     private final String TAG = "ww";
 
-    private int REQUEST_CODE_CHOOSE = 23;
-
     private String croppedVideoUriStr;    // 裁剪后的视频 uri
     private String frameUriStr;    // 视频第一帧 uri
     private String pathJsonStr;    // 绘制的路径
 
     private String textSource;    // 添加的文本素材
 //    private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
-    List<Uri> mSelected;
 
     private EditText editText;
     private Button okButton;
@@ -86,28 +89,37 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
         } else if (v.getId() == R.id.addImageButton) {
 
-            Matisse.from(this)
-                    .choose(MimeType.ofImage()) // 仅选择图片类型
-                    .countable(true) // 显示选择图片的数量
-                    .maxSelectable(9) // 最多可选择的图片数量
-                    .capture(false) // 是否显示拍照
-                    .gridExpectedSize(getResources().getDimensionPixelSize(R.dimen.grid_expected_size))
-                    .restrictOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED) // 限制选择图片的方向
-                    .thumbnailScale(0.85f) // 缩略图缩放比例
-                    .imageEngine(new GlideEngine()) // 图片加载引擎
-                    .forResult(REQUEST_CODE_CHOOSE); // 设置请求码，用于在onActivityResult中接收结果
+            Intent intent = new Intent();
+            intent.setType("image/*");
+            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            intent.setAction(Intent.ACTION_GET_CONTENT);
+            startActivityForResult(Intent.createChooser(intent,"Select Picture"), 1);
 
-            Log.d(TAG, "over");
         }
     }
 
     @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Log.d(TAG, "call back");
+    protected void onActivityResult(int requestCode, int resultCode, final Intent data) {
+
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE_CHOOSE && resultCode == RESULT_OK) {
-            mSelected = Matisse.obtainResult(data);
-            Log.d("Matisse", "mSelected: " + mSelected);
+
+        if (resultCode != Activity.RESULT_OK) {
+            Log.e(TAG, "onActivityResult: " + requestCode);
+            return;
+        }
+
+        if (requestCode == 1) {
+            ClipData clipData = data.getClipData();
+            if (clipData != null) {
+                Log.d(TAG, "多张图片：" + clipData.getItemCount());
+                for (int i = 0; i < clipData.getItemCount(); i++) {
+                    Uri currentUri = clipData.getItemAt(i).getUri();
+                }
+            } else {
+                Uri currentUri = data.getData();
+                Log.d(TAG, "单张图片: " + currentUri);
+            }
+
         }
     }
 
