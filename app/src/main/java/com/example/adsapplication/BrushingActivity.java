@@ -11,10 +11,15 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -51,7 +56,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     private String pathJsonStr;
 
     private AlertDialog brushAlertDialog;
-    private float brushWidth = 20f;
+    private float brushWidth = 25f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,10 +95,6 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
         retryButton = findViewById(R.id.retryButton);
         retryButton.setOnClickListener(this);
 
-//        btnThick = brushSelectDialog.findViewById(R.id.btnThick);
-//        btnMedium = brushSelectDialog.findViewById(R.id.btnMedium);
-//        btnThin = brushSelectDialog.findViewById(R.id.btnThin);
-
         path = new Path();
 
         pathPointsList = new ArrayList<>();
@@ -127,6 +128,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
                 List<Float> point = new ArrayList<>();
                 point.add(x);
                 point.add(y);
+                point.add(brushWidth);
                 pathPointsList.add(point);
 
                 switch (event.getAction()) {
@@ -164,7 +166,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
                 textView.setText("已拿起小号画笔");
                 break;
             case 0:
-                brushWidth = 20f;
+                brushWidth = 25f;
                 textView.setText("已拿起中号画笔");
                 break;
             case 1:
@@ -223,7 +225,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             AlertDialog.Builder brushDialog =
                     new AlertDialog.Builder(BrushingActivity.this);
             final View dialogView = LayoutInflater.from(BrushingActivity.this)
-                    .inflate(R.layout.popup_brush,null);
+                    .inflate(R.layout.popup_brush, null);
 
             ImageButton thickButton = dialogView.findViewById(R.id.btnThick);
             ImageButton mediumButton = dialogView.findViewById(R.id.btnMedium);
@@ -250,12 +252,18 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
                 }
             });
 
-            brushDialog.setTitle("请选择笔刷大小");
-
             brushDialog.setView(dialogView);
 
-            brushAlertDialog = brushDialog.show();
+            brushAlertDialog = brushDialog.create();
 
+            // 设置对话框大小和位置
+            Window window = brushAlertDialog.getWindow();
+            WindowManager.LayoutParams layoutParams = window.getAttributes();
+            layoutParams.gravity = Gravity.BOTTOM;
+            layoutParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
+            window.setAttributes(layoutParams);
+
+            brushAlertDialog.show();
 
         }
     }
