@@ -1,77 +1,58 @@
 package com.example.adsapplication.utils;
 
-import android.net.Uri;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.adsapplication.R;
 
 import java.util.List;
 
-public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ViewHolder> {
+public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
 
-    private List<Uri> imageUris;
-    private OnAddButtonClickListener addButtonClickListener;
+    private List<String> imageUrls;
 
-    public ImageAdapter(List<Uri> imageUris, OnAddButtonClickListener addButtonClickListener) {
-        this.imageUris = imageUris;
-        this.addButtonClickListener = addButtonClickListener;
+    public ImageAdapter(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
     }
 
-    public interface OnAddButtonClickListener {
-        void onAddButtonClick();
-    }
-
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        ImageView imageView;
-        Button addButton;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-            imageView = itemView.findViewById(R.id.imageView);
-            addButton = itemView.findViewById(R.id.addButton);
-        }
+    public void setImageUrls(List<String> imageUrls) {
+        this.imageUrls = imageUrls;
+        notifyDataSetChanged();
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_image_with_add_button, parent, false);
-        return new ViewHolder(view);
+    public ImageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_image, parent, false);
+        return new ImageViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        if (position < imageUris.size()) {
-            // 显示图片
-            Uri imageUri = imageUris.get(position);
-            holder.imageView.setImageURI(imageUri);
-            holder.addButton.setVisibility(View.GONE);
-        } else {
-            // 显示添加按钮
-            holder.imageView.setImageResource(R.drawable.placeholder_image); // 设置默认的图片占位符
-            holder.addButton.setVisibility(View.VISIBLE);
-
-            // 绑定添加按钮的点击事件
-            holder.addButton.setOnClickListener(view -> {
-                if (addButtonClickListener != null) {
-                    addButtonClickListener.onAddButtonClick();
-                }
-            });
-        }
+    public void onBindViewHolder(@NonNull ImageViewHolder holder, int position) {
+        String imageUrl = imageUrls.get(position);
+        Glide.with(holder.itemView.getContext())
+                .load(imageUrl)
+                .into(holder.imageView);
     }
 
     @Override
     public int getItemCount() {
-        // 加 1 是为了显示添加按钮
-        return imageUris.size() + 1;
+        return imageUrls.size();
+    }
+
+    public static class ImageViewHolder extends RecyclerView.ViewHolder {
+        ImageView imageView;
+
+        public ImageViewHolder(@NonNull View itemView) {
+            super(itemView);
+            imageView = itemView.findViewById(R.id.imageView);
+        }
     }
 }
 

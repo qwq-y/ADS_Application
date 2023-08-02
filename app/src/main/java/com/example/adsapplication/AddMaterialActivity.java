@@ -12,7 +12,10 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.adsapplication.utils.ImageAdapter;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -33,6 +36,8 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
     private Button okButton;
     private Button retryButton;
     private Button addImageButton;
+    private RecyclerView recyclerView;
+    private ImageAdapter imageAdapter;
 
 
     @Override
@@ -55,6 +60,10 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
         retryButton = findViewById(R.id.retryButton);
         retryButton.setOnClickListener(this);
 
+        recyclerView = findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new GridLayoutManager(this, 3)); // 3列网格布局
+        imageAdapter = new ImageAdapter(imageSourceUriStrs);
+        recyclerView.setAdapter(imageAdapter);
 
     }
 
@@ -76,7 +85,9 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
         } else if (v.getId() == R.id.retryButton) {
 
-            // TODO: 清空图片
+            imageSourceUriStrs.clear();
+            imageAdapter.setImageUrls(imageSourceUriStrs);
+
             editText.setText("");
             textSource = null;
 
@@ -115,6 +126,10 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
                 Log.d(TAG, "单张图片: \n" + currentUri);
                 imageSourceUriStrs.add(currentUri.toString());
             }
+
+            imageAdapter.setImageUrls(imageSourceUriStrs);
+            Log.d(TAG, "共 " + imageSourceUriStrs.size() +  " 张图片");
+
 
         }
     }
