@@ -5,11 +5,11 @@ import android.content.ClipData;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageButton;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -29,7 +29,7 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
     private String frameUriStr;    // 视频第一帧 uri
     private String pathJsonStr;    // 绘制的路径
 
-    private String textSource;    // 添加的文本素材
+    private String textSource = "";    // 添加的文本素材
     private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
 
     private EditText editText;
@@ -38,6 +38,8 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
     private Button addImageButton;
     private RecyclerView recyclerView;
     private ImageAdapter imageAdapter;
+    private int itemSize;    // recyclerView 里每个 item 的宽度（用于设置高度）
+    int spanCount = 4;    // recyclerView 里的列数
 
 
     @Override
@@ -60,11 +62,22 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
         retryButton = findViewById(R.id.retryButton);
         retryButton.setOnClickListener(this);
 
+
         recyclerView = findViewById(R.id.recyclerView);
-        recyclerView.setLayoutManager(new GridLayoutManager(this, 3)); // 3列网格布局
-        imageAdapter = new ImageAdapter(imageSourceUriStrs);
+        itemSize = calculateItemSize(spanCount);
+
+        recyclerView.setLayoutManager(new GridLayoutManager(this, spanCount));
+
+        imageAdapter = new ImageAdapter(imageSourceUriStrs, itemSize);
         recyclerView.setAdapter(imageAdapter);
 
+    }
+
+    private int calculateItemSize(int spanCount) {
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int screenWidth = displayMetrics.widthPixels;
+        int itemSpacing = getResources().getDimensionPixelSize(R.dimen.item_spacing);
+        return (screenWidth - (spanCount - 1) * itemSpacing) / spanCount;
     }
 
     @Override
@@ -129,7 +142,6 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
             imageAdapter.setImageUrls(imageSourceUriStrs);
             Log.d(TAG, "共 " + imageSourceUriStrs.size() +  " 张图片");
-
 
         }
     }

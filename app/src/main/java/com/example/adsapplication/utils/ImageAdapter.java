@@ -16,9 +16,11 @@ import java.util.List;
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
 
     private List<String> imageUrls;
+    private int imageSize;
 
-    public ImageAdapter(List<String> imageUrls) {
+    public ImageAdapter(List<String> imageUrls, int imageSize) {
         this.imageUrls = imageUrls;
+        this.imageSize = imageSize;
     }
 
     public void setImageUrls(List<String> imageUrls) {
@@ -39,7 +41,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         Glide.with(holder.itemView.getContext())
                 .load(imageUrl)
                 .into(holder.imageView);
+
+        // 设置ImageView的高度等于宽度，以保持图片为正方形
+        ViewGroup.LayoutParams layoutParams = holder.imageView.getLayoutParams();
+        layoutParams.height = imageSize;
+        holder.imageView.setLayoutParams(layoutParams);
     }
+
 
     @Override
     public int getItemCount() {
