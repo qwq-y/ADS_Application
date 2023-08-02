@@ -1,15 +1,10 @@
 package com.example.adsapplication;
 
-import static android.provider.MediaStore.getPickImagesMaxLimit;
-
 import android.app.Activity;
 import android.content.ClipData;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,10 +14,6 @@ import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.gson.Gson;
-import com.zhihu.matisse.Matisse;
-import com.zhihu.matisse.MimeType;
-import com.zhihu.matisse.engine.impl.GlideEngine;
-import com.zhihu.matisse.filter.Filter;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +32,7 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
     private EditText editText;
     private Button okButton;
     private Button retryButton;
-    private ImageButton addImageButton;
+    private Button addImageButton;
 
 
     @Override
@@ -116,11 +107,13 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
                 Log.d(TAG, "多张图片：" + clipData.getItemCount());
                 for (int i = 0; i < clipData.getItemCount(); i++) {
                     Uri currentUri = clipData.getItemAt(i).getUri();
+                    Log.d(TAG, currentUri.toString());
                     imageSourceUriStrs.add(currentUri.toString());
                 }
             } else {
                 Uri currentUri = data.getData();
-                Log.d(TAG, "单张图片: " + currentUri);
+                Log.d(TAG, "单张图片: \n" + currentUri);
+                imageSourceUriStrs.add(currentUri.toString());
             }
 
         }

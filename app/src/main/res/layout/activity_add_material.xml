@@ -15,14 +15,26 @@
         android:orientation="vertical"
         android:gravity="center">
 
-        <ImageButton
+
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="0.5"
+        android:layout_margin="15dp"
+        android:paddingLeft="15dp"
+        android:paddingRight="15dp"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <Button
             android:id="@+id/addImageButton"
-            android:layout_width="wrap_content"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:src="@drawable/ic_add"
-            android:padding="8dp"
-            android:layout_gravity="center_horizontal" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="点击添加图片"
+            android:textColor="#FFFFFF"
+            android:textSize="15dp"/>
 
     </LinearLayout>
 
