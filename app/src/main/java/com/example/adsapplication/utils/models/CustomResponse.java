@@ -6,11 +6,11 @@ import java.util.List;
 import java.util.Map;
 
 public class CustomResponse implements Serializable {
-    private String message;
+
     private String status;
+    private String message;
     private String video;
-    private String image;
-    private List<List<Float>> coordinates;
+    private List<String> images;
 
     public CustomResponse() {}
 
@@ -38,20 +38,12 @@ public class CustomResponse implements Serializable {
         this.video = video;
     }
 
-    public String getImage() {
-        return image;
+    public List<String> getImages() {
+        return images;
     }
 
-    public void setImage(String image) {
-        this.image = image;
-    }
-
-    public List<List<Float>> getCoordinates() {
-        return coordinates;
-    }
-
-    public void setCoordinates(List<List<Float>> coordinates) {
-        this.coordinates = coordinates;
+    public void setImages(List<String> images) {
+        this.images = images;
     }
 }
 

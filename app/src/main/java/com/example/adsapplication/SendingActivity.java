@@ -172,17 +172,6 @@ public class SendingActivity extends AppCompatActivity {
                         Log.d(TAG, messageKey + " not found in reply");
                     }
 
-                    // 获取图像
-                    String imageKey = "Image";
-                    if (jsonObject.has(imageKey)) {
-                        String image= jsonObject.getString(imageKey);
-                        if (image != null) {
-                            customResponse.setImage(image);
-                        }
-                    } else {
-                        Log.d(TAG, imageKey + " not found in reply");
-                    }
-
                     // 获取视频
                     String videoKey = "Video";
                     if (jsonObject.has(videoKey)) {
@@ -194,16 +183,20 @@ public class SendingActivity extends AppCompatActivity {
                         Log.d(TAG, videoKey + " not found in reply");
                     }
 
-                    // 获取坐标链表
-                    String coordinatesKey = "Coordinates";
-                    if (jsonObject.has(coordinatesKey)) {
-                        JSONArray messageArray = jsonObject.getJSONArray(messageKey);
-                        if (messageArray != null) {
-                            List<List<Float>> coordinates = getCoordinatesListFromJsonArray(messageArray);
-                            customResponse.setCoordinates(coordinates);
+                    // 获取图像列表
+                    String imagesKey = "Images";
+                    if (jsonObject.has(imagesKey)) {
+                        JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
+                        if (imageArray != null) {
+                            List<String> images = new ArrayList<>();
+                            for (int i = 0; i < imageArray.length(); i++) {
+                                String image = imageArray.getString(i);
+                                images.add(image);
+                            }
+                            customResponse.setImages(images);
                         }
                     } else {
-                        Log.d(TAG, coordinatesKey + " not found in reply");
+                        Log.d(TAG, imagesKey + " not found in reply");
                     }
 
                     future.complete(customResponse);
@@ -220,24 +213,6 @@ public class SendingActivity extends AppCompatActivity {
         });
 
         return future;
-    }
-
-    private static List<List<Float>> getCoordinatesListFromJsonArray(JSONArray jsonArray) throws JSONException {
-
-        List<List<Float>> dataList = new ArrayList<>();
-
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONArray innerArray = jsonArray.getJSONArray(i);
-            List<Float> innerList = new ArrayList<>();
-
-            for (int j = 0; j < innerArray.length(); j++) {
-                innerList.add((float) innerArray.getDouble(j));
-            }
-
-            dataList.add(innerList);
-        }
-
-        return dataList;
     }
 
     private File getImageFileFromUri(Context context, Uri uri) {
