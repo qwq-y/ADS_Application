@@ -11,6 +11,8 @@ import android.provider.MediaStore;
 import android.util.Log;
 
 import com.example.adsapplication.utils.models.CustomResponse;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -18,6 +20,7 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -69,7 +72,8 @@ public class SendingActivity extends AppCompatActivity {
     }
 
     private void sendRequest() {
-        List<File> imageSourceFiles = new ArrayList<>();    // TODO: Uri 转 File 链表
+
+        List<File> imageSourceFiles = getFileListFromJson(imageSourceUriJsonStr);
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
@@ -102,22 +106,28 @@ public class SendingActivity extends AppCompatActivity {
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);
 
+        // TODO: 确定数据格式和关键字，测试发送
+
         if (params != null) {
             for (Map.Entry<String, String> entry : params.entrySet()) {
                 multipartBuilder.addFormDataPart(entry.getKey(), entry.getValue());
             }
         }
-        if (imageFile != null) {
-            multipartBuilder.addFormDataPart("image", imageFile.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), imageFile));
-        }
         if (videoFile != null) {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
-        if (imageFiles != null) {
-            // TODO: 处理和发送图片链表
-
+        if (imageFile != null) {
+            multipartBuilder.addFormDataPart("image", imageFile.getName(),
+                    RequestBody.create(MediaType.parse("image/*"), imageFile));
+        }
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            for (File image : imageFiles) {
+                if (image != null && image.exists()) {
+                    multipartBuilder.addFormDataPart("imagesList", image.getName(),
+                            RequestBody.create(MediaType.parse("image/*"), image));
+                }
+            }
         }
 
         RequestBody requestBody = multipartBuilder.build();
@@ -135,7 +145,7 @@ public class SendingActivity extends AppCompatActivity {
                     CustomResponse customResponse = new CustomResponse();
                     ResponseBody responseBody = response.body();
 
-                    // TODO: 确定数据格式和关键字，测试接收代码
+                    // TODO: 确定数据格式和关键字，测试接收
 
                     String responseString = responseBody.string();
                     JSONObject jsonObject = new JSONObject(responseString);
@@ -254,6 +264,22 @@ public class SendingActivity extends AppCompatActivity {
             return new File(filePath);
         }
         return null;
+    }
+
+    private List<File> getFileListFromJson(String jsonStr) {
+
+        Gson gson = new Gson();
+        Type listType = new TypeToken<List<String>>() {}.getType();
+
+        List<String> stringList = gson.fromJson(jsonStr, listType);
+
+        List<File> fileList = new ArrayList<>();
+        for (String uriString : stringList) {
+            File imageFile = new File(uriString);
+            fileList.add(imageFile);
+        }
+
+        return fileList;
     }
 
 }
