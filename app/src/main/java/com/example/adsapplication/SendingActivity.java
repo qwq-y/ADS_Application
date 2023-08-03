@@ -3,17 +3,24 @@ package com.example.adsapplication;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 
-import com.example.adsapplication.models.CustomResponse;
+import com.example.adsapplication.utils.models.CustomResponse;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,18 +31,18 @@ import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
-import okio.BufferedSink;
-import okio.Okio;
 
 public class SendingActivity extends AppCompatActivity {
 
     private final String TAG = "ww";
 
-    private String croppedVideoUriStr;    // 裁剪后的视频 uri
-    private String frameUriStr;    // 视频第一帧 uri
+    private String croppedVideoUriStr;    // 裁剪后的视频
+    private String frameUriStr;    // 视频第一帧
     private String pathJsonStr;    // 绘制的路径
-    private String imageSourcePath;    // 添加的图片素材路径
+    private String imageSourceUriJsonStr;    // 添加的图片素材
     private String textSource;    // 添加的文本素材
+
+    private CustomResponse response;    // 接收到的服务器响应数据
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,41 +51,43 @@ public class SendingActivity extends AppCompatActivity {
 
         croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
+        imageSourceUriJsonStr = getIntent().getStringExtra("imageSourceUriJsonStr");
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
-        imageSourcePath = getIntent().getStringExtra("imageSourcePath");
         textSource = getIntent().getStringExtra("textSource");
 
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    sendRequest();
-//                } catch (Exception e) {
-//                    Log.d(TAG, "exception in click run: " + e.getMessage());
-//                }
-//            }
-//        }).start();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    sendRequest();
+                } catch (Exception e) {
+                    Log.d(TAG, "exception in click run: " + e.getMessage());
+                }
+            }
+        }).start();
 
     }
 
     private void sendRequest() {
-        File imageSourceFile = new File(imageSourcePath);
+        List<File> imageSourceFiles = new ArrayList<>();    // TODO: Uri 转 File 链表
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
+        // TODO: 统一键名和 url
         Map<String, String> params = new HashMap<>();
         params.put("pathJsonStr", pathJsonStr);
         params.put("textSource", textSource);
 
         String url = "http://172.18.36.107:1200/video";
 
-        postADS(url, params, null, videoFile)
+        postADS(url, params, frameFile, imageSourceFiles, videoFile)
                 .thenAccept(customResponse -> {
-                    File video = customResponse.getVideo();
 
-                    if (video != null) {
+                    response = customResponse;
+                    Intent intent = new Intent(this, DisplayResponseActivity.class);
+                    intent.putExtra("response", response);
+                    startActivity(intent);
 
-                    }
                 })
                 .exceptionally(e -> {
                     // 处理异常
@@ -87,7 +96,7 @@ public class SendingActivity extends AppCompatActivity {
                 });
     }
 
-    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, File videoFile) {
+    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
         OkHttpClient client = new OkHttpClient();
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
@@ -106,6 +115,10 @@ public class SendingActivity extends AppCompatActivity {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
+        if (imageFiles != null) {
+            // TODO: 处理和发送图片链表
+
+        }
 
         RequestBody requestBody = multipartBuilder.build();
         okhttp3.Request request = new okhttp3.Request.Builder()
@@ -122,13 +135,66 @@ public class SendingActivity extends AppCompatActivity {
                     CustomResponse customResponse = new CustomResponse();
                     ResponseBody responseBody = response.body();
 
-                    String filePath = SendingActivity.this.getFilesDir() + File.separator + "video.mp4";
-                    File videoFile = new File(filePath);
-                    BufferedSink bufferedSink = Okio.buffer(Okio.sink(videoFile));
-                    bufferedSink.writeAll(responseBody.source());
-                    bufferedSink.close();
+                    // TODO: 确定数据格式和关键字，测试接收代码
 
-                    customResponse.setVideo(videoFile);
+                    String responseString = responseBody.string();
+                    JSONObject jsonObject = new JSONObject(responseString);
+
+                    // 获取状态码
+                    String statusKey = "Status";
+                    if (jsonObject.has(statusKey)) {
+                        String status = jsonObject.getString(statusKey);
+                        if (status != null) {
+                            customResponse.setStatus(status);
+                        }
+                    } else {
+                        Log.d(TAG, statusKey + " not found in reply");
+                    }
+
+                    // 获取消息
+                    String messageKey = "Message";
+                    if (jsonObject.has(messageKey)) {
+                        String message = jsonObject.getString(messageKey);
+                        if (message != null) {
+                            customResponse.setMessage(message);
+                        }
+                    } else {
+                        Log.d(TAG, messageKey + " not found in reply");
+                    }
+
+                    // 获取图像
+                    String imageKey = "Image";
+                    if (jsonObject.has(imageKey)) {
+                        String image= jsonObject.getString(imageKey);
+                        if (image != null) {
+                            customResponse.setImage(image);
+                        }
+                    } else {
+                        Log.d(TAG, imageKey + " not found in reply");
+                    }
+
+                    // 获取视频
+                    String videoKey = "Video";
+                    if (jsonObject.has(videoKey)) {
+                        String video = jsonObject.getString(videoKey);
+                        if (video != null) {
+                            customResponse.setVideo(video);
+                        }
+                    } else {
+                        Log.d(TAG, videoKey + " not found in reply");
+                    }
+
+                    // 获取坐标链表
+                    String coordinatesKey = "Coordinates";
+                    if (jsonObject.has(coordinatesKey)) {
+                        JSONArray messageArray = jsonObject.getJSONArray(messageKey);
+                        if (messageArray != null) {
+                            List<List<Float>> coordinates = getCoordinatesListFromJsonArray(messageArray);
+                            customResponse.setCoordinates(coordinates);
+                        }
+                    } else {
+                        Log.d(TAG, coordinatesKey + " not found in reply");
+                    }
 
                     future.complete(customResponse);
 
@@ -146,6 +212,23 @@ public class SendingActivity extends AppCompatActivity {
         return future;
     }
 
+    private static List<List<Float>> getCoordinatesListFromJsonArray(JSONArray jsonArray) throws JSONException {
+
+        List<List<Float>> dataList = new ArrayList<>();
+
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONArray innerArray = jsonArray.getJSONArray(i);
+            List<Float> innerList = new ArrayList<>();
+
+            for (int j = 0; j < innerArray.length(); j++) {
+                innerList.add((float) innerArray.getDouble(j));
+            }
+
+            dataList.add(innerList);
+        }
+
+        return dataList;
+    }
 
     private File getImageFileFromUri(Context context, Uri uri) {
         String[] filePathColumn = { MediaStore.Images.Media.DATA };
