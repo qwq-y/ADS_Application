@@ -86,31 +86,7 @@ public class SendingActivity extends AppCompatActivity {
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
-//        Log.d(TAG, "imageSourceFiles.size: " + imageSourceFiles.size());
-
-//        Uri videoNew = Uri.fromFile(videoFile);
-//        Log.d(TAG, "video: " + croppedVideoUriStr);
-//        Log.d(TAG, "videoNew: " + videoNew.toString());
-//        Uri frameNew = Uri.fromFile(frameFile);
-//        Log.d(TAG, "frame: " + frameUriStr);
-//        Log.d(TAG, "frameNew: " + frameNew.toString());
-
-//        ImageView imageView = findViewById(R.id.imageView);
-//        TextView textView = findViewById(R.id.textView);
-//        VideoView videoView = findViewById(R.id.videoView);
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//                imageView.setImageURI(frameNew);
-//
-//                videoView.setVideoURI(Uri.parse(croppedVideoUriStr));
-//                videoView.requestFocus();
-//                videoView.start();
-//
-//                textView.setText("New");
-//            }
-//        });
-
+        Log.d(TAG, "videoFile: " + Uri.fromFile(videoFile));
 
         Map<String, String> params = new HashMap<>();
         params.put("mask", pathJsonStr);
@@ -130,6 +106,7 @@ public class SendingActivity extends AppCompatActivity {
                 .exceptionally(e -> {
                     // 处理异常
                     Log.e(TAG, "sendRequest: " + e.getMessage());
+                    e.printStackTrace();
                     return null;
                 });
     }
@@ -167,6 +144,8 @@ public class SendingActivity extends AppCompatActivity {
                 .url(url)
                 .post(requestBody)
                 .build();
+
+        Log.d(TAG, "built");
 
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
