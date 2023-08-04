@@ -80,7 +80,7 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             imageView.setImageBitmap(paintedBitmap);
 
         } catch (Exception e) {
-            Log.e(TAG, "iamgeView: " + e.getMessage());
+            Log.e(TAG, "imageView: " + e.getMessage());
         }
 
         textView = findViewById(R.id.textView);

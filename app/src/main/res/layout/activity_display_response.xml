@@ -67,17 +67,17 @@
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="15dp"
-            android:text="取消"
+            android:text="退出"
             android:textColor="#FFFFFF"
             android:textSize="15dp"/>
 
         <Button
-            android:id="@+id/okButton"
+            android:id="@+id/saveButton"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="15dp"
-            android:text="确定"
+            android:text="保存"
             android:textColor="#FFFFFF"
             android:textSize="15dp"/>
 

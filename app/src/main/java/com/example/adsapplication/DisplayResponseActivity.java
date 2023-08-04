@@ -39,7 +39,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
     private int index = 0;    // 当前视频使用的图片序号
 
     private VideoView videoView;
-    private Button okButton;
+    private Button saveButton;
     private Button cancelButton;
     private RecyclerView recyclerView;
     private ImageAdapter imageAdapter;
@@ -60,8 +60,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
             Log.e(TAG, "get images and video: " + e.getMessage());
         }
 
-        okButton = findViewById(R.id.okButton);
-        okButton.setOnClickListener(this);
+        saveButton = findViewById(R.id.saveButton);
+        saveButton.setOnClickListener(this);
 
         cancelButton = findViewById(R.id.cancelButton);
         cancelButton.setOnClickListener(this);
@@ -87,9 +87,11 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
     @Override
     public void onClick(View v) {
-        if (v.getId() == R.id.okButton) {
+        if (v.getId() == R.id.saveButton) {
+            // TODO: 保存视频
 
         } else if (v.getId() == R.id.cancelButton) {
+            // TODO: 返回主页面
 
         }
     }
@@ -109,7 +111,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
     private String convertVideoToUri(Context context, String videoData) throws IOException{
         File file = saveVideoToTempFile(context, videoData);
-        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成
+        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成（FileProvider）
     }
 
     public List<String> convertBase64ImagesToUris(Context context, List<String> imageList) throws IOException {

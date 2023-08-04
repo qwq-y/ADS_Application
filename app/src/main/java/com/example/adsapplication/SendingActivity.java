@@ -2,13 +2,19 @@ package com.example.adsapplication;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.VideoView;
 
 import com.example.adsapplication.utils.models.CustomResponse;
 import com.google.gson.Gson;
@@ -18,8 +24,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -64,7 +73,7 @@ public class SendingActivity extends AppCompatActivity {
                 try {
                     sendRequest();
                 } catch (Exception e) {
-                    Log.d(TAG, "exception in click run: " + e.getMessage());
+                    Log.e(TAG, "exception in click run: " + e.getMessage());
                 }
             }
         }).start();
@@ -77,12 +86,37 @@ public class SendingActivity extends AppCompatActivity {
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
-        // TODO: 统一键名和 url
-        Map<String, String> params = new HashMap<>();
-        params.put("pathJsonStr", pathJsonStr);
-        params.put("textSource", textSource);
+//        Log.d(TAG, "imageSourceFiles.size: " + imageSourceFiles.size());
 
-        String url = "http://172.18.36.107:1200/video";
+//        Uri videoNew = Uri.fromFile(videoFile);
+//        Log.d(TAG, "video: " + croppedVideoUriStr);
+//        Log.d(TAG, "videoNew: " + videoNew.toString());
+//        Uri frameNew = Uri.fromFile(frameFile);
+//        Log.d(TAG, "frame: " + frameUriStr);
+//        Log.d(TAG, "frameNew: " + frameNew.toString());
+
+//        ImageView imageView = findViewById(R.id.imageView);
+//        TextView textView = findViewById(R.id.textView);
+//        VideoView videoView = findViewById(R.id.videoView);
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                imageView.setImageURI(frameNew);
+//
+//                videoView.setVideoURI(Uri.parse(croppedVideoUriStr));
+//                videoView.requestFocus();
+//                videoView.start();
+//
+//                textView.setText("New");
+//            }
+//        });
+
+
+        Map<String, String> params = new HashMap<>();
+        params.put("mask", pathJsonStr);
+        params.put("text_prompt", textSource);
+
+        String url = "http://10.25.6.55:80/aigc";
 
         postADS(url, params, frameFile, imageSourceFiles, videoFile)
                 .thenAccept(customResponse -> {
@@ -95,7 +129,7 @@ public class SendingActivity extends AppCompatActivity {
                 })
                 .exceptionally(e -> {
                     // 处理异常
-                    Log.d(TAG, "sendRequest: " + e.getMessage());
+                    Log.e(TAG, "sendRequest: " + e.getMessage());
                     return null;
                 });
     }
@@ -105,8 +139,6 @@ public class SendingActivity extends AppCompatActivity {
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);
-
-        // TODO: 确定数据格式和关键字，测试发送
 
         if (params != null) {
             for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -124,7 +156,7 @@ public class SendingActivity extends AppCompatActivity {
         if (imageFiles != null && !imageFiles.isEmpty()) {
             for (File image : imageFiles) {
                 if (image != null && image.exists()) {
-                    multipartBuilder.addFormDataPart("imagesList", image.getName(),
+                    multipartBuilder.addFormDataPart("image", image.getName(),
                             RequestBody.create(MediaType.parse("image/*"), image));
                 }
             }
@@ -142,10 +174,11 @@ public class SendingActivity extends AppCompatActivity {
             @Override
             public void onResponse(Call call, okhttp3.Response response) throws IOException {
                 try {
+
+                    Log.d(TAG, "received!");
+
                     CustomResponse customResponse = new CustomResponse();
                     ResponseBody responseBody = response.body();
-
-                    // TODO: 确定数据格式和关键字，测试接收
 
                     String responseString = responseBody.string();
                     JSONObject jsonObject = new JSONObject(responseString);
@@ -173,7 +206,7 @@ public class SendingActivity extends AppCompatActivity {
                     }
 
                     // 获取视频
-                    String videoKey = "Video";
+                    String videoKey = "VideoBytes";
                     if (jsonObject.has(videoKey)) {
                         String video = jsonObject.getString(videoKey);
                         if (video != null) {
@@ -184,7 +217,7 @@ public class SendingActivity extends AppCompatActivity {
                     }
 
                     // 获取图像列表
-                    String imagesKey = "Images";
+                    String imagesKey = "ImageBytes";
                     if (jsonObject.has(imagesKey)) {
                         JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
                         if (imageArray != null) {
@@ -199,6 +232,7 @@ public class SendingActivity extends AppCompatActivity {
                         Log.d(TAG, imagesKey + " not found in reply");
                     }
 
+                    Log.d(TAG, "handled!");
                     future.complete(customResponse);
 
                 } catch (Exception e) {
@@ -216,27 +250,42 @@ public class SendingActivity extends AppCompatActivity {
     }
 
     private File getImageFileFromUri(Context context, Uri uri) {
-        String[] filePathColumn = { MediaStore.Images.Media.DATA };
-        Cursor cursor = context.getContentResolver().query(uri, filePathColumn, null, null, null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String filePath = cursor.getString(columnIndex);
-            cursor.close();
-            return new File(filePath);
+
+        File file = null;
+
+        try {
+            InputStream inputStream = getContentResolver().openInputStream(uri);
+            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+            inputStream.close();
+
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+            byte[] byteArray = stream.toByteArray();
+
+            file = new File(context.getCacheDir(), "frame.png");
+
+            FileOutputStream fos = new FileOutputStream(file);
+            fos.write(byteArray);
+            fos.flush();
+            fos.close();
+
+        } catch (Exception e) {
+            Log.e(TAG, "stream: " + e.getMessage());
         }
-        return null;
+
+        return file;
     }
 
     private File getVideoFileFromUri(Context context, Uri uri) {
-        String[] filePathColumn = { MediaStore.Video.Media.DATA };
-        Cursor cursor = context.getContentResolver().query(uri, filePathColumn, null, null, null);
-        if (cursor != null) {
-            cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
-            String filePath = cursor.getString(columnIndex);
-            cursor.close();
-            return new File(filePath);
+        String[] projection = {MediaStore.Video.Media.DATA};
+        try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
+                String filePath = cursor.getString(columnIndex);
+                return new File(filePath);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return null;
     }
@@ -244,7 +293,8 @@ public class SendingActivity extends AppCompatActivity {
     private List<File> getFileListFromJson(String jsonStr) {
 
         Gson gson = new Gson();
-        Type listType = new TypeToken<List<String>>() {}.getType();
+        Type listType = new TypeToken<List<String>>() {
+        }.getType();
 
         List<String> stringList = gson.fromJson(jsonStr, listType);
 
