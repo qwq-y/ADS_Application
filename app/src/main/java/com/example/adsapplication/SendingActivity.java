@@ -1,10 +1,15 @@
 package com.example.adsapplication;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
+import android.Manifest;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -48,6 +53,8 @@ public class SendingActivity extends AppCompatActivity {
 
     private final String TAG = "ww";
 
+    private static final int REQUEST_PERMISSION = 123;
+
     private String croppedVideoUriStr;    // 裁剪后的视频
     private String frameUriStr;    // 视频第一帧
     private String pathJsonStr;    // 绘制的路径
@@ -67,6 +74,45 @@ public class SendingActivity extends AppCompatActivity {
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
         textSource = getIntent().getStringExtra("textSource");
 
+        // 检查是否已经授予了所需的权限
+        if (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            // 如果权限没有被授予，请求权限
+            Log.d(TAG, "requestPermissions");
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    },
+                    REQUEST_PERMISSION);
+        } else {
+            // 权限已被授予，执行您的文件操作
+            newThreadAndSendRequest();
+        }
+    }
+
+    // 处理权限请求的结果
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSION) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                    grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                // 权限已被授予，执行您的文件操作
+                newThreadAndSendRequest();
+            } else {
+                // 权限被拒绝，可能需要提示用户或执行其他操作
+                Log.e(TAG, "NoPermissions");
+            }
+        }
+    }
+
+    private void newThreadAndSendRequest() {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -77,7 +123,6 @@ public class SendingActivity extends AppCompatActivity {
                 }
             }
         }).start();
-
     }
 
     private void sendRequest() {
@@ -86,7 +131,22 @@ public class SendingActivity extends AppCompatActivity {
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
-        Log.d(TAG, "videoFile: " + Uri.fromFile(videoFile));
+        Log.d(TAG, "Uri.fromFile(videoFile): " + Uri.fromFile(videoFile));
+
+//        runOnUiThread(new Runnable() {
+//            @Override
+//            public void run() {
+//                try {
+//                    VideoView videoView = findViewById(R.id.videoView);
+////                videoView.setVideoURI(Uri.parse(croppedVideoUriStr));
+//                    videoView.setVideoPath(videoFile.getAbsolutePath());
+//
+//                    videoView.start();
+//                } catch (Exception e) {
+//                    Log.e(TAG, "play video: " + e.getMessage());
+//                }
+//            }
+//        });
 
         Map<String, String> params = new HashMap<>();
         params.put("mask", pathJsonStr);
@@ -100,7 +160,7 @@ public class SendingActivity extends AppCompatActivity {
                     response = customResponse;
                     Intent intent = new Intent(this, DisplayResponseActivity.class);
                     intent.putExtra("response", response);
-                    startActivity(intent);
+//                    startActivity(intent);
 
                 })
                 .exceptionally(e -> {
@@ -154,12 +214,13 @@ public class SendingActivity extends AppCompatActivity {
             public void onResponse(Call call, okhttp3.Response response) throws IOException {
                 try {
 
-                    Log.d(TAG, "received!");
+                    Log.d(TAG, "received");
 
                     CustomResponse customResponse = new CustomResponse();
                     ResponseBody responseBody = response.body();
 
                     String responseString = responseBody.string();
+//                    Log.d(TAG, "responseString" + responseString);
                     JSONObject jsonObject = new JSONObject(responseString);
 
                     // 获取状态码
