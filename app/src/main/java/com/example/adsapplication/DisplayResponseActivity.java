@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class DisplayResponseActivity extends AppCompatActivity implements View.OnClickListener {
+public class DisplayResponseActivity extends AppCompatActivity implements View.OnClickListener, ImageAdapter.OnImageClickListener {
 
     private final String TAG = "ww";
 
@@ -82,6 +82,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         recyclerView.setLayoutManager(new GridLayoutManager(this, spanCount));
 
         imageAdapter = new ImageAdapter(images, itemSize);
+        imageAdapter.setOnImageClickListener(this);
         recyclerView.setAdapter(imageAdapter);
     }
 
@@ -94,6 +95,15 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
             // TODO: 返回主页面
 
         }
+    }
+
+    @Override
+    public void onImageClick(int position) {
+        // 用户点击图片时
+        index = position;
+        imageAdapter.setSelectedItemPosition(index);
+
+
     }
 
     private void displaySelectedVideo(Uri videoUri) {
@@ -128,7 +138,6 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         return uriList;
     }
 
-    // 将Bitmap保存到临时图片文件
     public File saveBitmapToTempFile(Context context, Bitmap bitmap) throws IOException {
         byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.JPEG, 100);
         return saveToTempFile(context, imageData, ".jpg");
@@ -140,14 +149,12 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         return saveToTempFile(context, videoBytes, ".mp4");
     }
 
-    // 将Bitmap转换为字节数组
     private byte[] bitmapToByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         bitmap.compress(format, quality, byteArrayOutputStream);
         return byteArrayOutputStream.toByteArray();
     }
 
-    // 将数据保存到临时文件
     private File saveToTempFile(Context context, byte[] data, String fileExtension) throws IOException {
 
         File cacheDir = context.getCacheDir(); // context.getExternalFilesDir(null)

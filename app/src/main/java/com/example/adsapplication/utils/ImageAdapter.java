@@ -17,14 +17,26 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     private List<String> imageUrls;
     private int imageSize;
+    private OnImageClickListener onImageClickListener;
+    private int selectedItemPosition = 0;
+
 
     public ImageAdapter(List<String> imageUrls, int imageSize) {
         this.imageUrls = imageUrls;
         this.imageSize = imageSize;
     }
 
+    public void setOnImageClickListener(OnImageClickListener listener) {
+        this.onImageClickListener = listener;
+    }
+
     public void setImageUrls(List<String> imageUrls) {
         this.imageUrls = imageUrls;
+        notifyDataSetChanged();
+    }
+
+    public void setSelectedItemPosition(int position) {
+        selectedItemPosition = position;
         notifyDataSetChanged();
     }
 
@@ -46,8 +58,23 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         ViewGroup.LayoutParams layoutParams = holder.imageView.getLayoutParams();
         layoutParams.height = imageSize;
         holder.imageView.setLayoutParams(layoutParams);
-    }
 
+        // 判断是否显示圈圈
+        if (position == selectedItemPosition) {
+            holder.imageView.setBackgroundResource(R.drawable.circle_background);
+        } else {
+            holder.imageView.setBackground(null);
+        }
+
+        // 添加点击监听
+        holder.itemView.setOnClickListener(v -> {
+            if (onImageClickListener != null) {
+                setSelectedItemPosition(position); // 更新被点击的位置
+                onImageClickListener.onImageClick(position);
+                notifyDataSetChanged(); // 刷新适配器
+            }
+        });
+    }
 
     @Override
     public int getItemCount() {
@@ -62,6 +89,9 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
             imageView = itemView.findViewById(R.id.imageView);
         }
     }
+
+    // 定义点击监听器接口
+    public interface OnImageClickListener {
+        void onImageClick(int position);
+    }
 }
-
-

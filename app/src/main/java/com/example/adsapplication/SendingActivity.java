@@ -16,6 +16,7 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -31,6 +32,7 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -103,7 +105,7 @@ public class SendingActivity extends AppCompatActivity {
             if (grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                     grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                // 权限已被授予，执行您的文件操作
+                // 权限已被授予，执行文件操作
                 newThreadAndSendRequest();
             } else {
                 // 权限被拒绝，可能需要提示用户或执行其他操作
@@ -130,23 +132,7 @@ public class SendingActivity extends AppCompatActivity {
         List<File> imageSourceFiles = getFileListFromJson(imageSourceUriJsonStr);
         File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
-
-        Log.d(TAG, "Uri.fromFile(videoFile): " + Uri.fromFile(videoFile));
-
-//        runOnUiThread(new Runnable() {
-//            @Override
-//            public void run() {
-//                try {
-//                    VideoView videoView = findViewById(R.id.videoView);
-////                videoView.setVideoURI(Uri.parse(croppedVideoUriStr));
-//                    videoView.setVideoPath(videoFile.getAbsolutePath());
-//
-//                    videoView.start();
-//                } catch (Exception e) {
-//                    Log.e(TAG, "play video: " + e.getMessage());
-//                }
-//            }
-//        });
+        byte[] pickleData = getPickleData(imageSourceFiles, frameFile);
 
         Map<String, String> params = new HashMap<>();
         params.put("mask", pathJsonStr);
@@ -154,7 +140,7 @@ public class SendingActivity extends AppCompatActivity {
 
         String url = "http://10.25.6.55:80/aigc";
 
-        postADS(url, params, frameFile, imageSourceFiles, videoFile)
+        postADS(url, params, frameFile, imageSourceFiles, videoFile, pickleData)
                 .thenAccept(customResponse -> {
 
                     response = customResponse;
@@ -171,7 +157,43 @@ public class SendingActivity extends AppCompatActivity {
                 });
     }
 
-    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
+    private byte[] getPickleData(List<File> imageSourceFiles, File frameFile) {
+        Map<String, String> encodedImages = new HashMap<>();
+
+        encodedImages.put("frame", encodeImage(frameFile));
+
+        for (int i = 0; i < imageSourceFiles.size(); i++) {
+            File imageFile = imageSourceFiles.get(i);
+            if (imageFile.exists()) {
+                String encodedImage = encodeImage(imageFile);
+                encodedImages.put("image_" + i, encodedImage);
+            }
+        }
+
+        byte[] pickleData = serializeToBytes(encodedImages);
+        return pickleData;
+    }
+
+    private static String encodeImage(File imageFile) {
+        try {
+            FileInputStream fileInputStream = new FileInputStream(imageFile);
+            byte[] imageBytes = new byte[(int) imageFile.length()];
+            fileInputStream.read(imageBytes);
+            fileInputStream.close();
+
+            return Base64.encodeToString(imageBytes, Base64.DEFAULT);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return null; // Return null on error
+    }
+
+    private static byte[] serializeToBytes(Map<String, String> data) {
+        return Base64.encode(data.toString().getBytes(), Base64.DEFAULT);
+    }
+
+    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile, byte[] pickleData) {
         OkHttpClient client = new OkHttpClient();
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
@@ -186,6 +208,10 @@ public class SendingActivity extends AppCompatActivity {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
+//        if (pickleData != null) {
+//            multipartBuilder.addFormDataPart("encoded_images", "encoded_images",
+//                    RequestBody.create(MediaType.parse("application/octet-stream"), pickleData));
+//        }
         if (imageFile != null) {
             multipartBuilder.addFormDataPart("image", imageFile.getName(),
                     RequestBody.create(MediaType.parse("image/*"), imageFile));
@@ -221,58 +247,64 @@ public class SendingActivity extends AppCompatActivity {
 
                     String responseString = responseBody.string();
 //                    Log.d(TAG, "responseString" + responseString);
-                    JSONObject jsonObject = new JSONObject(responseString);
+                    try {
+                        JSONObject jsonObject = new JSONObject(responseString);
 
-                    // 获取状态码
-                    String statusKey = "Status";
-                    if (jsonObject.has(statusKey)) {
-                        String status = jsonObject.getString(statusKey);
-                        if (status != null) {
-                            customResponse.setStatus(status);
-                        }
-                    } else {
-                        Log.d(TAG, statusKey + " not found in reply");
-                    }
-
-                    // 获取消息
-                    String messageKey = "Message";
-                    if (jsonObject.has(messageKey)) {
-                        String message = jsonObject.getString(messageKey);
-                        if (message != null) {
-                            customResponse.setMessage(message);
-                        }
-                    } else {
-                        Log.d(TAG, messageKey + " not found in reply");
-                    }
-
-                    // 获取视频
-                    String videoKey = "VideoBytes";
-                    if (jsonObject.has(videoKey)) {
-                        String video = jsonObject.getString(videoKey);
-                        if (video != null) {
-                            customResponse.setVideo(video);
-                        }
-                    } else {
-                        Log.d(TAG, videoKey + " not found in reply");
-                    }
-
-                    // 获取图像列表
-                    String imagesKey = "ImageBytes";
-                    if (jsonObject.has(imagesKey)) {
-                        JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
-                        if (imageArray != null) {
-                            List<String> images = new ArrayList<>();
-                            for (int i = 0; i < imageArray.length(); i++) {
-                                String image = imageArray.getString(i);
-                                images.add(image);
+                        // 获取状态码
+                        String statusKey = "Status";
+                        if (jsonObject.has(statusKey)) {
+                            String status = jsonObject.getString(statusKey);
+                            if (status != null) {
+                                customResponse.setStatus(status);
                             }
-                            customResponse.setImages(images);
+                        } else {
+                            Log.d(TAG, statusKey + " not found in reply");
                         }
-                    } else {
-                        Log.d(TAG, imagesKey + " not found in reply");
+
+                        // 获取消息
+                        String messageKey = "Message";
+                        if (jsonObject.has(messageKey)) {
+                            String message = jsonObject.getString(messageKey);
+                            if (message != null) {
+                                customResponse.setMessage(message);
+                            }
+                        } else {
+                            Log.d(TAG, messageKey + " not found in reply");
+                        }
+
+                        // 获取视频
+                        String videoKey = "VideoBytes";
+                        if (jsonObject.has(videoKey)) {
+                            String video = jsonObject.getString(videoKey);
+                            if (video != null) {
+                                customResponse.setVideo(video);
+                            }
+                        } else {
+                            Log.d(TAG, videoKey + " not found in reply");
+                        }
+
+                        // 获取图像列表
+                        String imagesKey = "ImageBytes";
+                        if (jsonObject.has(imagesKey)) {
+                            JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
+                            if (imageArray != null) {
+                                List<String> images = new ArrayList<>();
+                                for (int i = 0; i < imageArray.length(); i++) {
+                                    String image = imageArray.getString(i);
+                                    images.add(image);
+                                }
+                                customResponse.setImages(images);
+                            }
+                        } else {
+                            Log.d(TAG, imagesKey + " not found in reply");
+                        }
+
+                        Log.d(TAG, "handled!");
+                    } catch (JSONException e) {
+                        Log.e(TAG, "fail to convert to JSONObject: " + e.getMessage());
+
                     }
 
-                    Log.d(TAG, "handled!");
                     future.complete(customResponse);
 
                 } catch (Exception e) {
@@ -333,8 +365,7 @@ public class SendingActivity extends AppCompatActivity {
     private List<File> getFileListFromJson(String jsonStr) {
 
         Gson gson = new Gson();
-        Type listType = new TypeToken<List<String>>() {
-        }.getType();
+        Type listType = new TypeToken<List<String>>() {}.getType();
 
         List<String> stringList = gson.fromJson(jsonStr, listType);
 
