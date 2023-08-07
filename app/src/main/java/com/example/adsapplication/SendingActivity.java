@@ -129,10 +129,9 @@ public class SendingActivity extends AppCompatActivity {
 
     private void sendRequest() {
 
-        List<File> imageSourceFiles = getFileListFromJson(imageSourceUriJsonStr);
-        File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr));
+        List<File> imageSourceFiles = getFileListFromJson(SendingActivity.this, imageSourceUriJsonStr);
+        File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr), "frame.png");
         File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
-        byte[] pickleData = getPickleData(imageSourceFiles, frameFile);
 
         Map<String, String> params = new HashMap<>();
         params.put("mask", pathJsonStr);
@@ -140,13 +139,13 @@ public class SendingActivity extends AppCompatActivity {
 
         String url = "http://10.25.6.55:80/aigc";
 
-        postADS(url, params, frameFile, imageSourceFiles, videoFile, pickleData)
+        postADS(url, params, frameFile, imageSourceFiles, videoFile)
                 .thenAccept(customResponse -> {
 
                     response = customResponse;
                     Intent intent = new Intent(this, DisplayResponseActivity.class);
                     intent.putExtra("response", response);
-//                    startActivity(intent);
+                    startActivity(intent);
 
                 })
                 .exceptionally(e -> {
@@ -157,43 +156,7 @@ public class SendingActivity extends AppCompatActivity {
                 });
     }
 
-    private byte[] getPickleData(List<File> imageSourceFiles, File frameFile) {
-        Map<String, String> encodedImages = new HashMap<>();
-
-        encodedImages.put("frame", encodeImage(frameFile));
-
-        for (int i = 0; i < imageSourceFiles.size(); i++) {
-            File imageFile = imageSourceFiles.get(i);
-            if (imageFile.exists()) {
-                String encodedImage = encodeImage(imageFile);
-                encodedImages.put("image_" + i, encodedImage);
-            }
-        }
-
-        byte[] pickleData = serializeToBytes(encodedImages);
-        return pickleData;
-    }
-
-    private static String encodeImage(File imageFile) {
-        try {
-            FileInputStream fileInputStream = new FileInputStream(imageFile);
-            byte[] imageBytes = new byte[(int) imageFile.length()];
-            fileInputStream.read(imageBytes);
-            fileInputStream.close();
-
-            return Base64.encodeToString(imageBytes, Base64.DEFAULT);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null; // Return null on error
-    }
-
-    private static byte[] serializeToBytes(Map<String, String> data) {
-        return Base64.encode(data.toString().getBytes(), Base64.DEFAULT);
-    }
-
-    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile, byte[] pickleData) {
+    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
         OkHttpClient client = new OkHttpClient();
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
@@ -208,10 +171,6 @@ public class SendingActivity extends AppCompatActivity {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
-//        if (pickleData != null) {
-//            multipartBuilder.addFormDataPart("encoded_images", "encoded_images",
-//                    RequestBody.create(MediaType.parse("application/octet-stream"), pickleData));
-//        }
         if (imageFile != null) {
             multipartBuilder.addFormDataPart("image", imageFile.getName(),
                     RequestBody.create(MediaType.parse("image/*"), imageFile));
@@ -321,7 +280,7 @@ public class SendingActivity extends AppCompatActivity {
         return future;
     }
 
-    private File getImageFileFromUri(Context context, Uri uri) {
+    private File getImageFileFromUri(Context context, Uri uri, String name) {
 
         File file = null;
 
@@ -334,7 +293,7 @@ public class SendingActivity extends AppCompatActivity {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
             byte[] byteArray = stream.toByteArray();
 
-            file = new File(context.getCacheDir(), "frame.png");
+            file = new File(context.getCacheDir(), name);
 
             FileOutputStream fos = new FileOutputStream(file);
             fos.write(byteArray);
@@ -362,7 +321,7 @@ public class SendingActivity extends AppCompatActivity {
         return null;
     }
 
-    private List<File> getFileListFromJson(String jsonStr) {
+    private List<File> getFileListFromJson(Context context, String jsonStr) {
 
         Gson gson = new Gson();
         Type listType = new TypeToken<List<String>>() {}.getType();
@@ -370,8 +329,9 @@ public class SendingActivity extends AppCompatActivity {
         List<String> stringList = gson.fromJson(jsonStr, listType);
 
         List<File> fileList = new ArrayList<>();
-        for (String uriString : stringList) {
-            File imageFile = new File(uriString);
+        for (int i = 0; i < stringList.size(); i++) {
+            String uriString = stringList.get(i);
+            File imageFile = getImageFileFromUri(context, Uri.parse(uriString), "image_" + i);
             fileList.add(imageFile);
         }
 
