@@ -138,7 +138,7 @@ public class SendingActivity extends AppCompatActivity {
 
         String url = "http://10.25.6.55:80/aigc";
 
-        postADS(url, params, frameFile, imageSourceFiles, videoFile)
+        postADS(url, params, frameFile, null, imageSourceFiles, videoFile)
                 .thenAccept(customResponse -> {
 
                     response = customResponse;
@@ -151,8 +151,7 @@ public class SendingActivity extends AppCompatActivity {
                         try {
                             imagesUri = MyConverter.convertBase64ImagesToUris(SendingActivity.this, images);
                             videoUri = MyConverter.convertVideoToUri(SendingActivity.this, video);
-                            Log.d(TAG, "imagesUri: " + imagesUri);
-                            Log.d(TAG, "videoUri: " + videoUri);
+
                         } catch (Exception e) {
                             Log.e(TAG, "convert images and video: " + e.getMessage());
                         }
@@ -160,6 +159,10 @@ public class SendingActivity extends AppCompatActivity {
                         Intent intent = new Intent(this, DisplayResponseActivity.class);
                         intent.putStringArrayListExtra("imagesUri", new ArrayList<>(imagesUri));
                         intent.putExtra("videoUri", videoUri);
+                        intent.putExtra("originalVideoUri", croppedVideoUriStr);
+                        intent.putExtra("frameUriStr", frameUriStr);
+                        intent.putExtra("pathJsonStr", pathJsonStr);
+                        intent.putExtra("textSource", textSource);
                         startActivity(intent);
 
                     } else {
@@ -176,7 +179,7 @@ public class SendingActivity extends AppCompatActivity {
     }
 
     private CompletableFuture<CustomResponse> postADS(
-            String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
+            String url, Map<String, String> params, File frameImage, File generatedImage, List<File> imageFiles, File videoFile) {
 
         OkHttpClient client = new OkHttpClient();
 
@@ -192,9 +195,13 @@ public class SendingActivity extends AppCompatActivity {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
-        if (imageFile != null) {
-            multipartBuilder.addFormDataPart("image", imageFile.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), imageFile));
+        if (frameImage != null) {
+            multipartBuilder.addFormDataPart("frame", frameImage.getName(),
+                    RequestBody.create(MediaType.parse("image/*"), frameImage));
+        }
+        if (generatedImage != null) {
+            multipartBuilder.addFormDataPart("generated", generatedImage.getName(),
+                    RequestBody.create(MediaType.parse("image/*"), generatedImage));
         }
         if (imageFiles != null && !imageFiles.isEmpty()) {
             for (File image : imageFiles) {

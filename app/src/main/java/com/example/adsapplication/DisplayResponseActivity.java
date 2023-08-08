@@ -32,8 +32,13 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
     private final String TAG = "ww";
 
-    private String videoUri;    // 视频的 uri 字符串
-    private List<String> imagesUri;    // 图片的 uri 字符串
+    private String originalVideoUri;    // 原视频
+    private String frameUriStr;    // 视频第一帧
+    private String pathJsonStr;    // 绘制的路径
+    private String textSource;    // 添加的文本素材
+
+    private String videoUri;    // 生成的视频
+    private List<String> imagesUri;    // 生成的图片列表
 
     private int index = 0;    // 当前视频使用的图片序号
 
@@ -53,6 +58,10 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
         imagesUri = getIntent().getStringArrayListExtra("imagesUri");
         videoUri = getIntent().getStringExtra("videoUri");
+        originalVideoUri = getIntent().getStringExtra("originalVideoUri");
+        frameUriStr = getIntent().getStringExtra("frameUriStr");
+        pathJsonStr = getIntent().getStringExtra("pathJsonStr");
+        textSource = getIntent().getStringExtra("textSource");
 
         saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(this);

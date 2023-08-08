@@ -15,6 +15,8 @@ import java.util.List;
 
 public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHolder> {
 
+    private final String TAG = "ww";
+
     private List<String> imageUrls;
     private int imageSize;
     private OnImageClickListener onImageClickListener;
