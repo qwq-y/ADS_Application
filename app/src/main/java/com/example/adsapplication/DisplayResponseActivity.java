@@ -78,6 +78,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         imageAdapter = new ImageAdapter(imagesUri, itemSize);
         imageAdapter.setOnImageClickListener(this);
         recyclerView.setAdapter(imageAdapter);
+
+        imageAdapter.setSelectedItemPosition(index);
     }
 
     @Override

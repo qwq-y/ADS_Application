@@ -18,8 +18,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
     private List<String> imageUrls;
     private int imageSize;
     private OnImageClickListener onImageClickListener;
-    private int selectedItemPosition = 0;
-
+    private int selectedItemPosition = -1;
 
     public ImageAdapter(List<String> imageUrls, int imageSize) {
         this.imageUrls = imageUrls;
@@ -58,12 +57,13 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
         ViewGroup.LayoutParams layoutParams = holder.imageView.getLayoutParams();
         layoutParams.height = imageSize;
         holder.imageView.setLayoutParams(layoutParams);
+        holder.overlayImageView.setLayoutParams(layoutParams);
 
-        // 判断是否显示圈圈
+        // 判断是否显示覆盖图片
         if (position == selectedItemPosition) {
-            holder.imageView.setBackgroundResource(R.drawable.circle_background);
+            holder.overlayImageView.setVisibility(View.VISIBLE);
         } else {
-            holder.imageView.setBackground(null);
+            holder.overlayImageView.setVisibility(View.GONE);
         }
 
         // 添加点击监听
@@ -83,10 +83,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.ImageViewHol
 
     public static class ImageViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
+        ImageView overlayImageView;
 
         public ImageViewHolder(@NonNull View itemView) {
             super(itemView);
             imageView = itemView.findViewById(R.id.imageView);
+            overlayImageView = itemView.findViewById(R.id.overlayImageView);
         }
     }
 
