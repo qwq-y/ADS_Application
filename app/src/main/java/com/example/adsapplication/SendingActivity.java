@@ -1,12 +1,6 @@
 package com.example.adsapplication;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.Manifest;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,9 +12,11 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.VideoView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.adsapplication.utils.models.CustomResponse;
 import com.google.gson.Gson;
@@ -32,7 +28,6 @@ import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,6 +59,9 @@ public class SendingActivity extends AppCompatActivity {
     private String textSource;    // 添加的文本素材
 
     private CustomResponse response;    // 接收到的服务器响应数据
+    private List<String> imagesUri;
+    private String videoUri;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -143,9 +141,29 @@ public class SendingActivity extends AppCompatActivity {
                 .thenAccept(customResponse -> {
 
                     response = customResponse;
-                    Intent intent = new Intent(this, DisplayResponseActivity.class);
-                    intent.putExtra("response", response);
-                    startActivity(intent);
+                    String status = response.getStatus();
+                    String message = response.getMessage();
+                    if (status.equals("Success")) {
+
+                        String video = response.getVideo();
+                        List<String> images = response.getImages();
+                        try {
+                            imagesUri = convertBase64ImagesToUris(SendingActivity.this, images);
+                            videoUri = convertVideoToUri(SendingActivity.this, video);
+                            Log.d(TAG, "imagesUri: " + imagesUri);
+                            Log.d(TAG, "videoUri: " + videoUri);
+                        } catch (Exception e) {
+                            Log.e(TAG, "convert images and video: " + e.getMessage());
+                        }
+
+                        Intent intent = new Intent(this, DisplayResponseActivity.class);
+                        intent.putStringArrayListExtra("imagesUri", new ArrayList<>(imagesUri));
+                        intent.putExtra("videoUri", videoUri);
+                        startActivity(intent);
+
+                    } else {
+                        Log.e(TAG, status + ": " + message);
+                    }
 
                 })
                 .exceptionally(e -> {
@@ -156,7 +174,72 @@ public class SendingActivity extends AppCompatActivity {
                 });
     }
 
-    private CompletableFuture<CustomResponse> postADS(String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
+    private String convertVideoToUri(Context context, String videoData) throws IOException{
+        File file = saveVideoToTempFile(context, videoData);
+        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成（FileProvider）
+    }
+
+    public List<String> convertBase64ImagesToUris(Context context, List<String> imageList) throws IOException {
+        List<String> uriList = new ArrayList<>();
+        for (String imageStr : imageList) {
+            byte[] decodedString = Base64.decode(imageStr, Base64.DEFAULT);
+            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+            File tempFile = saveBitmapToTempFile(context, bitmap);
+
+            Uri uri = Uri.fromFile(tempFile);
+            uriList.add(uri.toString());
+        }
+        return uriList;
+    }
+
+    public File saveBitmapToTempFile(Context context, Bitmap bitmap) throws IOException {
+        byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.JPEG, 100);
+        return saveToTempFile(context, imageData, ".jpg");
+    }
+
+    // 将Base64编码的视频数据保存为临时视频文件
+    public File saveVideoToTempFile(Context context, String videoData) throws IOException {
+        byte[] videoBytes = Base64.decode(videoData, Base64.DEFAULT);
+        return saveToTempFile(context, videoBytes, ".mp4");
+    }
+
+    private byte[] bitmapToByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality) {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(format, quality, byteArrayOutputStream);
+        return byteArrayOutputStream.toByteArray();
+    }
+
+    private File saveToTempFile(Context context, byte[] data, String fileExtension) throws IOException {
+
+        File cacheDir = context.getCacheDir(); // context.getExternalFilesDir(null)
+
+        String tempFileName = "temp_" + System.currentTimeMillis() + fileExtension;
+        File tempFile = new File(cacheDir, tempFileName);
+
+        FileOutputStream outputStream = null;
+        try {
+            outputStream = new FileOutputStream(tempFile);
+            outputStream.write(data);
+            outputStream.flush();
+        } catch (IOException e) {
+            Log.e(TAG, "writeStream: " + e.getMessage());
+        } finally {
+            if (outputStream != null) {
+                try {
+                    outputStream.close();
+                } catch (IOException e) {
+                    Log.e(TAG, "closeStream: " + e.getMessage());
+                }
+            }
+        }
+
+        return tempFile;
+    }
+
+    private CompletableFuture<CustomResponse> postADS(
+            String url, Map<String, String> params, File imageFile, List<File> imageFiles, File videoFile) {
+
         OkHttpClient client = new OkHttpClient();
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
@@ -258,7 +341,7 @@ public class SendingActivity extends AppCompatActivity {
                             Log.d(TAG, imagesKey + " not found in reply");
                         }
 
-                        Log.d(TAG, "handled!");
+                        Log.d(TAG, "handled");
                     } catch (JSONException e) {
                         Log.e(TAG, "fail to convert to JSONObject: " + e.getMessage());
 
@@ -324,7 +407,8 @@ public class SendingActivity extends AppCompatActivity {
     private List<File> getFileListFromJson(Context context, String jsonStr) {
 
         Gson gson = new Gson();
-        Type listType = new TypeToken<List<String>>() {}.getType();
+        Type listType = new TypeToken<List<String>>() {
+        }.getType();
 
         List<String> stringList = gson.fromJson(jsonStr, listType);
 

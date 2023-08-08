@@ -32,9 +32,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
     private final String TAG = "ww";
 
-    private CustomResponse response;
-    private String video;    // 视频的 uri 字符串
-    private List<String> images;    // 图片的 uri 字符串
+    private String videoUri;    // 视频的 uri 字符串
+    private List<String> imagesUri;    // 图片的 uri 字符串
 
     private int index = 0;    // 当前视频使用的图片序号
 
@@ -52,13 +51,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_display_response);
 
-        response = (CustomResponse) getIntent().getSerializableExtra("response");
-        try {
-            images = convertBase64ImagesToUris(DisplayResponseActivity.this, response.getImages());
-            video = convertVideoToUri(DisplayResponseActivity.this, response.getVideo());
-        } catch (Exception e) {
-            Log.e(TAG, "get images and video: " + e.getMessage());
-        }
+        imagesUri = getIntent().getStringArrayListExtra("imagesUri");
+        videoUri = getIntent().getStringExtra("videoUri");
 
         saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(this);
@@ -72,7 +66,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         videoView.setMediaController(mediaController);
         mediaController.setAnchorView(videoView);
 
-        videoView.setVideoURI(Uri.parse(video));
+        videoView.setVideoURI(Uri.parse(videoUri));
         videoView.requestFocus();
         videoView.start();
 
@@ -81,7 +75,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
         recyclerView.setLayoutManager(new GridLayoutManager(this, spanCount));
 
-        imageAdapter = new ImageAdapter(images, itemSize);
+        imageAdapter = new ImageAdapter(imagesUri, itemSize);
         imageAdapter.setOnImageClickListener(this);
         recyclerView.setAdapter(imageAdapter);
     }
@@ -103,7 +97,6 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         index = position;
         imageAdapter.setSelectedItemPosition(index);
 
-
     }
 
     private void displaySelectedVideo(Uri videoUri) {
@@ -119,66 +112,4 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         return (screenWidth - (spanCount - 1) * itemSpacing) / spanCount;
     }
 
-    private String convertVideoToUri(Context context, String videoData) throws IOException{
-        File file = saveVideoToTempFile(context, videoData);
-        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成（FileProvider）
-    }
-
-    public List<String> convertBase64ImagesToUris(Context context, List<String> imageList) throws IOException {
-        List<String> uriList = new ArrayList<>();
-        for (String imageStr : imageList) {
-            byte[] decodedString = Base64.decode(imageStr, Base64.DEFAULT);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-
-            File tempFile = saveBitmapToTempFile(context, bitmap);
-
-            Uri uri = Uri.fromFile(tempFile);
-            uriList.add(uri.toString());
-        }
-        return uriList;
-    }
-
-    public File saveBitmapToTempFile(Context context, Bitmap bitmap) throws IOException {
-        byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.JPEG, 100);
-        return saveToTempFile(context, imageData, ".jpg");
-    }
-
-    // 将Base64编码的视频数据保存为临时视频文件
-    public File saveVideoToTempFile(Context context, String videoData) throws IOException {
-        byte[] videoBytes = Base64.decode(videoData, Base64.DEFAULT);
-        return saveToTempFile(context, videoBytes, ".mp4");
-    }
-
-    private byte[] bitmapToByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(format, quality, byteArrayOutputStream);
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    private File saveToTempFile(Context context, byte[] data, String fileExtension) throws IOException {
-
-        File cacheDir = context.getCacheDir(); // context.getExternalFilesDir(null)
-
-        String tempFileName = "temp_" + System.currentTimeMillis() + fileExtension;
-        File tempFile = new File(cacheDir, tempFileName);
-
-        FileOutputStream outputStream = null;
-        try {
-            outputStream = new FileOutputStream(tempFile);
-            outputStream.write(data);
-            outputStream.flush();
-        } catch (IOException e) {
-            Log.e(TAG, "writeStream: " + e.getMessage());
-        } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "closeStream: " + e.getMessage());
-                }
-            }
-        }
-
-        return tempFile;
-    }
 }
