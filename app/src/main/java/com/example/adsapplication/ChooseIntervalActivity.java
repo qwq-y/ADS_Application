@@ -18,6 +18,8 @@ import android.widget.VideoView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.adsapplication.utils.MyConverter;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -114,7 +116,7 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         return videoUriStr;
     }
 
-    public String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
+    private String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
 
         long timeInMicroseconds = timeInMillisecond * 1000;
 
@@ -127,7 +129,7 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
             // 获取指定时间点的帧，单位为微秒
             Bitmap frame = mediaMetadataRetriever.getFrameAtTime(timeInMicroseconds);
 
-            return getUriFromBitmap(frame).toString();
+            return MyConverter.getUriFromBitmap(ChooseIntervalActivity.this, frame).toString();
 
         } catch (Exception e) {
             Log.e(TAG, "getVideoFrame: " + e.getMessage());
@@ -135,21 +137,6 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         } finally {
             // 释放资源
             mediaMetadataRetriever.release();
-        }
-    }
-
-    public Uri getUriFromBitmap(Bitmap bitmap) {
-        String fileName = "image.jpg"; // 自定义文件名
-        File file = new File(getExternalCacheDir(), fileName); // 或者使用其他文件目录，例如 getFilesDir()
-        try {
-            FileOutputStream fos = new FileOutputStream(file);
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fos);
-            fos.flush();
-            fos.close();
-            return Uri.fromFile(file);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
         }
     }
 

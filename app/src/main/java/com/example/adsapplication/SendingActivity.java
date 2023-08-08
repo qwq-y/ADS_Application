@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.example.adsapplication.utils.MyConverter;
 import com.example.adsapplication.utils.models.CustomResponse;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -127,9 +128,9 @@ public class SendingActivity extends AppCompatActivity {
 
     private void sendRequest() {
 
-        List<File> imageSourceFiles = getFileListFromJson(SendingActivity.this, imageSourceUriJsonStr);
-        File frameFile = getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr), "frame.png");
-        File videoFile = getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
+        List<File> imageSourceFiles = MyConverter.getFileListFromJson(SendingActivity.this, imageSourceUriJsonStr, getContentResolver());
+        File frameFile = MyConverter.getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr), "frame.png", getContentResolver());
+        File videoFile = MyConverter.getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
 
         Map<String, String> params = new HashMap<>();
         params.put("mask", pathJsonStr);
@@ -148,8 +149,8 @@ public class SendingActivity extends AppCompatActivity {
                         String video = response.getVideo();
                         List<String> images = response.getImages();
                         try {
-                            imagesUri = convertBase64ImagesToUris(SendingActivity.this, images);
-                            videoUri = convertVideoToUri(SendingActivity.this, video);
+                            imagesUri = MyConverter.convertBase64ImagesToUris(SendingActivity.this, images);
+                            videoUri = MyConverter.convertVideoToUri(SendingActivity.this, video);
                             Log.d(TAG, "imagesUri: " + imagesUri);
                             Log.d(TAG, "videoUri: " + videoUri);
                         } catch (Exception e) {
@@ -172,69 +173,6 @@ public class SendingActivity extends AppCompatActivity {
                     e.printStackTrace();
                     return null;
                 });
-    }
-
-    private String convertVideoToUri(Context context, String videoData) throws IOException{
-        File file = saveVideoToTempFile(context, videoData);
-        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成（FileProvider）
-    }
-
-    public List<String> convertBase64ImagesToUris(Context context, List<String> imageList) throws IOException {
-        List<String> uriList = new ArrayList<>();
-        for (String imageStr : imageList) {
-            byte[] decodedString = Base64.decode(imageStr, Base64.DEFAULT);
-            Bitmap bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
-
-            File tempFile = saveBitmapToTempFile(context, bitmap);
-
-            Uri uri = Uri.fromFile(tempFile);
-            uriList.add(uri.toString());
-        }
-        return uriList;
-    }
-
-    public File saveBitmapToTempFile(Context context, Bitmap bitmap) throws IOException {
-        byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.JPEG, 100);
-        return saveToTempFile(context, imageData, ".jpg");
-    }
-
-    // 将Base64编码的视频数据保存为临时视频文件
-    public File saveVideoToTempFile(Context context, String videoData) throws IOException {
-        byte[] videoBytes = Base64.decode(videoData, Base64.DEFAULT);
-        return saveToTempFile(context, videoBytes, ".mp4");
-    }
-
-    private byte[] bitmapToByteArray(Bitmap bitmap, Bitmap.CompressFormat format, int quality) {
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(format, quality, byteArrayOutputStream);
-        return byteArrayOutputStream.toByteArray();
-    }
-
-    private File saveToTempFile(Context context, byte[] data, String fileExtension) throws IOException {
-
-        File cacheDir = context.getCacheDir(); // context.getExternalFilesDir(null)
-
-        String tempFileName = "temp_" + System.currentTimeMillis() + fileExtension;
-        File tempFile = new File(cacheDir, tempFileName);
-
-        FileOutputStream outputStream = null;
-        try {
-            outputStream = new FileOutputStream(tempFile);
-            outputStream.write(data);
-            outputStream.flush();
-        } catch (IOException e) {
-            Log.e(TAG, "writeStream: " + e.getMessage());
-        } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    Log.e(TAG, "closeStream: " + e.getMessage());
-                }
-            }
-        }
-
-        return tempFile;
     }
 
     private CompletableFuture<CustomResponse> postADS(
@@ -361,65 +299,6 @@ public class SendingActivity extends AppCompatActivity {
         });
 
         return future;
-    }
-
-    private File getImageFileFromUri(Context context, Uri uri, String name) {
-
-        File file = null;
-
-        try {
-            InputStream inputStream = getContentResolver().openInputStream(uri);
-            Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
-            inputStream.close();
-
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-            byte[] byteArray = stream.toByteArray();
-
-            file = new File(context.getCacheDir(), name);
-
-            FileOutputStream fos = new FileOutputStream(file);
-            fos.write(byteArray);
-            fos.flush();
-            fos.close();
-
-        } catch (Exception e) {
-            Log.e(TAG, "stream: " + e.getMessage());
-        }
-
-        return file;
-    }
-
-    private File getVideoFileFromUri(Context context, Uri uri) {
-        String[] projection = {MediaStore.Video.Media.DATA};
-        try (Cursor cursor = context.getContentResolver().query(uri, projection, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst()) {
-                int columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA);
-                String filePath = cursor.getString(columnIndex);
-                return new File(filePath);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    private List<File> getFileListFromJson(Context context, String jsonStr) {
-
-        Gson gson = new Gson();
-        Type listType = new TypeToken<List<String>>() {
-        }.getType();
-
-        List<String> stringList = gson.fromJson(jsonStr, listType);
-
-        List<File> fileList = new ArrayList<>();
-        for (int i = 0; i < stringList.size(); i++) {
-            String uriString = stringList.get(i);
-            File imageFile = getImageFileFromUri(context, Uri.parse(uriString), "image_" + i);
-            fileList.add(imageFile);
-        }
-
-        return fileList;
     }
 
 }

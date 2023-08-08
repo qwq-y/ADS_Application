@@ -71,7 +71,7 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
         }
     }
 
-    public void pickVideo(View view) {
+    private void pickVideo(View view) {
         Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI);
         startActivityForResult(intent, REQUEST_VIDEO_PICK);
     }
