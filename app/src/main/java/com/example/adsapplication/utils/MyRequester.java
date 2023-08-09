@@ -51,13 +51,12 @@ public class MyRequester {
                             })
                             .exceptionally(e -> {
 
-                                Log.e(TAG, "sendRequest: " + e.getMessage());
-                                callback.onError("Failed: " + e.getMessage());
+                                callback.onError(e.getMessage());
                                 return null;
 
                             });
                 } catch (Exception e) {
-                    Log.e(TAG, "exception in click run: " + e.getMessage());
+                    Log.e(TAG, "newThreadAndSendRequest: " + e.getMessage());
                 }
             }
         }).start();
@@ -129,11 +128,11 @@ public class MyRequester {
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
         if (frameImage != null) {
-            multipartBuilder.addFormDataPart("frame", frameImage.getName(),
+            multipartBuilder.addFormDataPart("image", frameImage.getName(),
                     RequestBody.create(MediaType.parse("image/*"), frameImage));
         }
         if (generatedImage != null) {
-            multipartBuilder.addFormDataPart("generated", generatedImage.getName(),
+            multipartBuilder.addFormDataPart("image", generatedImage.getName(),
                     RequestBody.create(MediaType.parse("image/*"), generatedImage));
         }
         if (imageSource != null && !imageSource.isEmpty()) {
@@ -157,11 +156,16 @@ public class MyRequester {
         client.newCall(request).enqueue(new Callback() {
             @Override
             public void onResponse(Call call, Response response) {
+                Log.d(TAG, "received");
+
                 try {
                     if (response.isSuccessful()) {
+
                         String responseBody = response.body().string();
                         CustomResponse customResponse = parseCustomResponse(responseBody);
+                        Log.d(TAG, "handled");
                         future.complete(customResponse);
+
                     } else {
                         future.completeExceptionally(new Exception("Response not successful"));
                     }
@@ -233,12 +237,12 @@ public class MyRequester {
                 Log.d(TAG, imagesKey + " not found in reply");
             }
 
-            Log.d(TAG, "handled");
         } catch (JSONException e) {
             Log.e(TAG, "fail to convert to JSONObject: " + e.getMessage());
 
         }
-        return new CustomResponse(); // 示例，实际解析逻辑需要根据实际情况实现
+
+        return customResponse;
     }
 
 }

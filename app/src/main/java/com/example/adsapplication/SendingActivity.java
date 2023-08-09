@@ -136,9 +136,11 @@ public class SendingActivity extends AppCompatActivity {
 
     private void handleOnSuccess(CustomResponse response) {
 
+        Log.d(TAG, "onSuccess callback");
+
         String status = response.getStatus();
         String message = response.getMessage();
-        if (status.equals("Success")) {
+        if (status != null && status.equals("Success")) {
 
             String video = response.getVideo();
             List<String> images = response.getImages();
@@ -165,7 +167,7 @@ public class SendingActivity extends AppCompatActivity {
     }
 
     private void handleOnError(String errorMessage) {
-        Log.d(TAG, "handleOnError: " + errorMessage);
+        Log.e(TAG, "handleOnError: " + errorMessage);
     }
 
 }
