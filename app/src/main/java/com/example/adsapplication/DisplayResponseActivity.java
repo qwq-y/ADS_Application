@@ -18,7 +18,10 @@ import android.widget.MediaController;
 import android.widget.VideoView;
 
 import com.example.adsapplication.utils.ImageAdapter;
+import com.example.adsapplication.utils.MyConverter;
+import com.example.adsapplication.utils.MyRequester;
 import com.example.adsapplication.utils.models.CustomResponse;
+import com.example.adsapplication.utils.models.ResponseCallback;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -75,9 +78,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         videoView.setMediaController(mediaController);
         mediaController.setAnchorView(videoView);
 
-        videoView.setVideoURI(Uri.parse(videoUri));
-        videoView.requestFocus();
-        videoView.start();
+        displaySelectedVideo(Uri.parse(videoUri));
 
         recyclerView = findViewById(R.id.recyclerView);
         itemSize = calculateItemSize(spanCount);
@@ -108,6 +109,26 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         index = position;
         imageAdapter.setSelectedItemPosition(index);
 
+        MyRequester.newThreadAndSendRequest(new ResponseCallback() {
+                                                @Override
+                                                public void onSuccess(CustomResponse response) {
+                                                    Log.d(TAG, "onSuccess callback");
+                                                    try {
+                                                        videoUri = MyConverter.convertVideoToUri(DisplayResponseActivity.this, response.getVideo());
+                                                        displaySelectedVideo(Uri.parse(videoUri));
+                                                    } catch (Exception e) {
+                                                        Log.e(TAG, "convert video: " + e.getMessage());
+                                                    }
+                                                }
+
+                                                @Override
+                                                public void onError(String errorMessage) {
+                                                    Log.e(TAG, "onError: " + errorMessage);
+                                                }
+                                            }, this, getContentResolver(),
+                originalVideoUri, frameUriStr,
+                null, imagesUri.get(index),
+                pathJsonStr, textSource);
     }
 
     private void displaySelectedVideo(Uri videoUri) {
