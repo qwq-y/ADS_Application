@@ -19,7 +19,9 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.example.adsapplication.utils.MyConverter;
+import com.example.adsapplication.utils.MyRequester;
 import com.example.adsapplication.utils.models.CustomResponse;
+import com.example.adsapplication.utils.models.ResponseCallback;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -53,13 +55,14 @@ public class SendingActivity extends AppCompatActivity {
 
     private static final int REQUEST_PERMISSION = 123;
 
+    ResponseCallback callback;
+
     private String croppedVideoUriStr;    // 裁剪后的视频
     private String frameUriStr;    // 视频第一帧
     private String pathJsonStr;    // 绘制的路径
     private String imageSourceUriJsonStr;    // 添加的图片素材
     private String textSource;    // 添加的文本素材
 
-    private CustomResponse response;    // 接收到的服务器响应数据
     private List<String> imagesUri;
     private String videoUri;
 
@@ -68,6 +71,18 @@ public class SendingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sending);
+
+        callback = new ResponseCallback() {
+            @Override
+            public void onSuccess(CustomResponse response) {
+                handleOnSuccess(response);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                handleOnError(errorMessage);
+            }
+        };
 
         croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
@@ -89,8 +104,11 @@ public class SendingActivity extends AppCompatActivity {
                     },
                     REQUEST_PERMISSION);
         } else {
-            // 权限已被授予，执行您的文件操作
-            newThreadAndSendRequest();
+            // 权限已被授予，新建线程发送请求
+            MyRequester.newThreadAndSendRequest(callback, this, getContentResolver(),
+                    croppedVideoUriStr, frameUriStr,
+                    imageSourceUriJsonStr, null,
+                    pathJsonStr, textSource);
         }
     }
 
@@ -105,7 +123,10 @@ public class SendingActivity extends AppCompatActivity {
                     grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                     grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                 // 权限已被授予，执行文件操作
-                newThreadAndSendRequest();
+                MyRequester.newThreadAndSendRequest(callback, this, getContentResolver(),
+                        croppedVideoUriStr, frameUriStr,
+                        imageSourceUriJsonStr, null,
+                        pathJsonStr, textSource);
             } else {
                 // 权限被拒绝，可能需要提示用户或执行其他操作
                 Log.e(TAG, "NoPermissions");
@@ -113,199 +134,38 @@ public class SendingActivity extends AppCompatActivity {
         }
     }
 
-    private void newThreadAndSendRequest() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    sendRequest();
-                } catch (Exception e) {
-                    Log.e(TAG, "exception in click run: " + e.getMessage());
-                }
+    private void handleOnSuccess(CustomResponse response) {
+
+        String status = response.getStatus();
+        String message = response.getMessage();
+        if (status.equals("Success")) {
+
+            String video = response.getVideo();
+            List<String> images = response.getImages();
+            try {
+                imagesUri = MyConverter.convertBase64ImagesToUris(SendingActivity.this, images);
+                videoUri = MyConverter.convertVideoToUri(SendingActivity.this, video);
+
+            } catch (Exception e) {
+                Log.e(TAG, "convert images and video: " + e.getMessage());
             }
-        }).start();
+
+            Intent intent = new Intent(this, DisplayResponseActivity.class);
+            intent.putStringArrayListExtra("imagesUri", new ArrayList<>(imagesUri));
+            intent.putExtra("videoUri", videoUri);
+            intent.putExtra("originalVideoUri", croppedVideoUriStr);
+            intent.putExtra("frameUriStr", frameUriStr);
+            intent.putExtra("pathJsonStr", pathJsonStr);
+            intent.putExtra("textSource", textSource);
+            startActivity(intent);
+
+        } else {
+            Log.e(TAG, status + ": " + message);
+        }
     }
 
-    private void sendRequest() {
-
-        List<File> imageSourceFiles = MyConverter.getFileListFromJson(SendingActivity.this, imageSourceUriJsonStr, getContentResolver());
-        File frameFile = MyConverter.getImageFileFromUri(SendingActivity.this, Uri.parse(frameUriStr), "frame.png", getContentResolver());
-        File videoFile = MyConverter.getVideoFileFromUri(SendingActivity.this, Uri.parse(croppedVideoUriStr));
-
-        Map<String, String> params = new HashMap<>();
-        params.put("mask", pathJsonStr);
-        params.put("text_prompt", textSource);
-
-        String url = "http://10.25.6.55:80/aigc";
-
-        postADS(url, params, frameFile, null, imageSourceFiles, videoFile)
-                .thenAccept(customResponse -> {
-
-                    response = customResponse;
-                    String status = response.getStatus();
-                    String message = response.getMessage();
-                    if (status.equals("Success")) {
-
-                        String video = response.getVideo();
-                        List<String> images = response.getImages();
-                        try {
-                            imagesUri = MyConverter.convertBase64ImagesToUris(SendingActivity.this, images);
-                            videoUri = MyConverter.convertVideoToUri(SendingActivity.this, video);
-
-                        } catch (Exception e) {
-                            Log.e(TAG, "convert images and video: " + e.getMessage());
-                        }
-
-                        Intent intent = new Intent(this, DisplayResponseActivity.class);
-                        intent.putStringArrayListExtra("imagesUri", new ArrayList<>(imagesUri));
-                        intent.putExtra("videoUri", videoUri);
-                        intent.putExtra("originalVideoUri", croppedVideoUriStr);
-                        intent.putExtra("frameUriStr", frameUriStr);
-                        intent.putExtra("pathJsonStr", pathJsonStr);
-                        intent.putExtra("textSource", textSource);
-                        startActivity(intent);
-
-                    } else {
-                        Log.e(TAG, status + ": " + message);
-                    }
-
-                })
-                .exceptionally(e -> {
-                    // 处理异常
-                    Log.e(TAG, "sendRequest: " + e.getMessage());
-                    e.printStackTrace();
-                    return null;
-                });
-    }
-
-    private CompletableFuture<CustomResponse> postADS(
-            String url, Map<String, String> params, File frameImage, File generatedImage, List<File> imageFiles, File videoFile) {
-
-        OkHttpClient client = new OkHttpClient();
-
-        MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
-                .setType(MultipartBody.FORM);
-
-        if (params != null) {
-            for (Map.Entry<String, String> entry : params.entrySet()) {
-                multipartBuilder.addFormDataPart(entry.getKey(), entry.getValue());
-            }
-        }
-        if (videoFile != null) {
-            multipartBuilder.addFormDataPart("video", videoFile.getName(),
-                    RequestBody.create(MediaType.parse("video/*"), videoFile));
-        }
-        if (frameImage != null) {
-            multipartBuilder.addFormDataPart("frame", frameImage.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), frameImage));
-        }
-        if (generatedImage != null) {
-            multipartBuilder.addFormDataPart("generated", generatedImage.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), generatedImage));
-        }
-        if (imageFiles != null && !imageFiles.isEmpty()) {
-            for (File image : imageFiles) {
-                if (image != null && image.exists()) {
-                    multipartBuilder.addFormDataPart("image", image.getName(),
-                            RequestBody.create(MediaType.parse("image/*"), image));
-                }
-            }
-        }
-
-        RequestBody requestBody = multipartBuilder.build();
-        okhttp3.Request request = new okhttp3.Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .build();
-
-        Log.d(TAG, "built");
-
-        CompletableFuture<CustomResponse> future = new CompletableFuture<>();
-
-        client.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onResponse(Call call, okhttp3.Response response) throws IOException {
-                try {
-
-                    Log.d(TAG, "received");
-
-                    CustomResponse customResponse = new CustomResponse();
-                    ResponseBody responseBody = response.body();
-
-                    String responseString = responseBody.string();
-//                    Log.d(TAG, "responseString" + responseString);
-                    try {
-                        JSONObject jsonObject = new JSONObject(responseString);
-
-                        // 获取状态码
-                        String statusKey = "Status";
-                        if (jsonObject.has(statusKey)) {
-                            String status = jsonObject.getString(statusKey);
-                            if (status != null) {
-                                customResponse.setStatus(status);
-                            }
-                        } else {
-                            Log.d(TAG, statusKey + " not found in reply");
-                        }
-
-                        // 获取消息
-                        String messageKey = "Message";
-                        if (jsonObject.has(messageKey)) {
-                            String message = jsonObject.getString(messageKey);
-                            if (message != null) {
-                                customResponse.setMessage(message);
-                            }
-                        } else {
-                            Log.d(TAG, messageKey + " not found in reply");
-                        }
-
-                        // 获取视频
-                        String videoKey = "VideoBytes";
-                        if (jsonObject.has(videoKey)) {
-                            String video = jsonObject.getString(videoKey);
-                            if (video != null) {
-                                customResponse.setVideo(video);
-                            }
-                        } else {
-                            Log.d(TAG, videoKey + " not found in reply");
-                        }
-
-                        // 获取图像列表
-                        String imagesKey = "ImageBytes";
-                        if (jsonObject.has(imagesKey)) {
-                            JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
-                            if (imageArray != null) {
-                                List<String> images = new ArrayList<>();
-                                for (int i = 0; i < imageArray.length(); i++) {
-                                    String image = imageArray.getString(i);
-                                    images.add(image);
-                                }
-                                customResponse.setImages(images);
-                            }
-                        } else {
-                            Log.d(TAG, imagesKey + " not found in reply");
-                        }
-
-                        Log.d(TAG, "handled");
-                    } catch (JSONException e) {
-                        Log.e(TAG, "fail to convert to JSONObject: " + e.getMessage());
-
-                    }
-
-                    future.complete(customResponse);
-
-                } catch (Exception e) {
-                    future.completeExceptionally(e);
-                }
-            }
-
-            @Override
-            public void onFailure(Call call, IOException e) {
-                future.completeExceptionally(e);
-            }
-        });
-
-        return future;
+    private void handleOnError(String errorMessage) {
+        Log.d(TAG, "handleOnError: " + errorMessage);
     }
 
 }
