@@ -19,8 +19,12 @@ import com.example.planeinsertion.utils.MyConverter;
 import com.example.planeinsertion.utils.MyRequester;
 import com.example.planeinsertion.utils.models.CustomResponse;
 import com.example.planeinsertion.utils.models.ResponseCallback;
+import com.google.gson.Gson;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class AddVideoActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -74,6 +78,11 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
 
+            List<String> imageFilesUri = new ArrayList<>();
+            imageFilesUri.add(maskUriStr);
+            Gson gson = new Gson();
+            String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+
             String url = "http://10.25.6.55:80/aigc";
 
             MyRequester.newThreadAndSendRequest(new ResponseCallback() {
@@ -94,7 +103,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
                                                     }
                                                 }, this, getContentResolver(),
                     croppedVideoUriStr, videoSourceUriStr,
-                    null,
+                    imageFilesUriJsonStr,
                     null, url);
 
             Intent intent = new Intent(this, DisplayResultActivity.class);
