@@ -33,17 +33,17 @@ public class MyRequester {
     private static final String TAG = "ww";
 
     public static void newThreadAndSendRequest(ResponseCallback callback, Context context, ContentResolver resolver,
-                                               String croppedVideoUriStr, String frameUriStr,
-                                               String imageSourceUriJsonStr, String generatedImageUriStr,
-                                               String pathJsonStr, String textSource) {
+                                               String croppedVideoUriStr, String sourceVideoUriStr,
+                                               String imageFilesUriJsonStr,
+                                               Map<String, String> params, String url) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     sendRequest(context, resolver,
-                            croppedVideoUriStr, frameUriStr,
-                            imageSourceUriJsonStr, generatedImageUriStr,
-                            pathJsonStr, textSource)
+                            croppedVideoUriStr, sourceVideoUriStr,
+                            imageFilesUriJsonStr,
+                            params, url)
                             .thenAccept(customResponse -> {
 
                                 callback.onSuccess(customResponse);
@@ -63,33 +63,30 @@ public class MyRequester {
     }
 
     private static CompletableFuture<CustomResponse> sendRequest(Context context, ContentResolver resolver,
-                                                                 String croppedVideoUriStr, String frameUriStr,
-                                                                 String imageSourceUriJsonStr, String generatedImageUriStr,
-                                                                 String pathJsonStr, String textSource) {
+                                                                 String croppedVideoUriStr, String sourceVideoUriStr,
+                                                                 String imageFilesUriJsonStr,
+                                                                 Map<String, String> params, String url) {
 
         Log.d(TAG, "to sendRequest");
 
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
-        File videoFile = MyConverter.getVideoFileFromUri(context, Uri.parse(croppedVideoUriStr));
-        File frameFile = MyConverter.getImageFileFromUri(context, Uri.parse(frameUriStr), "frame.png", resolver);
-        List<File> imageSource = null;
-        File generatedImage = null;
-
-        if (imageSourceUriJsonStr != null) {
-            imageSource = MyConverter.getFileListFromJson(context, imageSourceUriJsonStr, resolver);
+        List<File> videoFiles = new ArrayList<>();
+        if (croppedVideoUriStr != null) {
+            File croppedVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(croppedVideoUriStr));
+            videoFiles.add(croppedVideo);
         }
-        if (generatedImageUriStr != null) {
-            generatedImage = MyConverter.getImageFileFromUri(context, Uri.parse(generatedImageUriStr), "generated.png", resolver);
+        if (sourceVideoUriStr != null) {
+            File sourceVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(sourceVideoUriStr));
+            videoFiles.add(sourceVideo);
         }
 
-        Map<String, String> params = new HashMap<>();
-        params.put("mask", pathJsonStr);
-        params.put("text_prompt", textSource);
+        List<File> imageFiles = null;
+        if (imageFilesUriJsonStr != null) {
+            imageFiles = MyConverter.getFileListFromJson(context, imageFilesUriJsonStr, resolver);;
+        }
 
-        String url = "http://10.25.6.55:80/aigc";
-
-        postADS(url, params, videoFile, frameFile, imageSource, generatedImage)
+        postADS(url, params, videoFiles, imageFiles)
                 .thenAccept(customResponse -> {
 
                     future.complete(customResponse);
@@ -108,7 +105,7 @@ public class MyRequester {
 
     private static CompletableFuture<CustomResponse> postADS(
             String url, Map<String, String> params,
-            File videoFile, File frameImage, List<File> imageSource, File generatedImage) {
+            List<File> videoFiles, List<File> imageFiles) {
 
         Log.d(TAG, "to postADS");
 
@@ -123,21 +120,16 @@ public class MyRequester {
                 multipartBuilder.addFormDataPart(entry.getKey(), entry.getValue());
             }
         }
-        if (videoFile != null) {
-            multipartBuilder.addFormDataPart("video", videoFile.getName(),
-                    RequestBody.create(MediaType.parse("video/*"), videoFile));
+        if (videoFiles != null) {
+            for (File video : videoFiles) {
+                if (video != null && video.exists()) {
+                    multipartBuilder.addFormDataPart("video", video.getName(),
+                            RequestBody.create(MediaType.parse("video/*"), video));
+                }
+            }
         }
-        // TODO: 修改键名
-        if (frameImage != null) {
-            multipartBuilder.addFormDataPart("image", frameImage.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), frameImage));
-        }
-        if (generatedImage != null) {
-            multipartBuilder.addFormDataPart("image", generatedImage.getName(),
-                    RequestBody.create(MediaType.parse("image/*"), generatedImage));
-        }
-        if (imageSource != null && !imageSource.isEmpty()) {
-            for (File image : imageSource) {
+        if (imageFiles != null && !imageFiles.isEmpty()) {
+            for (File image : imageFiles) {
                 if (image != null && image.exists()) {
                     multipartBuilder.addFormDataPart("image", image.getName(),
                             RequestBody.create(MediaType.parse("image/*"), image));

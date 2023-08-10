@@ -28,7 +28,7 @@ public class MyConverter  {
 
     public static String convertVideoToUri(Context context, String videoData) throws IOException {
         File file = saveVideoToTempFile(context, videoData);
-        return Uri.fromFile(file).toString();    // TODO: fromFile可能用不成（FileProvider）
+        return Uri.fromFile(file).toString();
     }
 
     public static List<String> convertBase64ImagesToUris(Context context, List<String> imageList) throws IOException {

@@ -87,10 +87,9 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         cancelButton = findViewById(R.id.cancelButton);
         cancelButton.setOnClickListener(this);
 
-        videoView = findViewById(R.id.videoView);
-
         textView = findViewById(R.id.textView);
 
+        videoView = findViewById(R.id.videoView);
         MediaController mediaController = new MediaController(this);
         videoView.setMediaController(mediaController);
         mediaController.setAnchorView(videoView);
@@ -143,7 +142,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
                                                 @Override
                                                 public void onError(String errorMessage) {
-                                                    Log.e(TAG, "onError: " + errorMessage);
+                                                    Log.e(TAG, "onError callback: " + errorMessage);
                                                 }
                                             }, this, getContentResolver(),
                 originalVideoUri, frameUriStr,

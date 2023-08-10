@@ -20,6 +20,12 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
+            android:name=".DisplayResultActivity"
+            android:exported="false" />
+        <activity
+            android:name=".AddVideoActivity"
+            android:exported="false" />
+        <activity
             android:name=".GetPlaneActivity"
             android:exported="false" />
         <activity
