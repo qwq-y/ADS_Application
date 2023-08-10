@@ -1,15 +1,11 @@
 package com.example.adsapplication;
 
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -20,8 +16,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.adsapplication.utils.MyConverter;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 
 import it.sephiroth.android.library.rangeseekbar.RangeSeekBar;

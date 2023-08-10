@@ -1,20 +1,29 @@
 package com.example.adsapplication;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.MediaController;
+import android.widget.TextView;
 import android.widget.VideoView;
 
 import com.example.adsapplication.utils.ImageAdapter;
@@ -25,11 +34,16 @@ import com.example.adsapplication.utils.models.ResponseCallback;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+
+// 注意：如果程序中，之前的页面不一定会申请运行时权限的话，本页需要添加相关代码！！！（目前Sending页申请过了）
 
 public class DisplayResponseActivity extends AppCompatActivity implements View.OnClickListener, ImageAdapter.OnImageClickListener {
 
@@ -46,6 +60,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
     private int index = 0;    // 当前视频使用的图片序号
 
     private VideoView videoView;
+    private TextView textView;
     private Button saveButton;
     private Button cancelButton;
     private RecyclerView recyclerView;
@@ -74,6 +89,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
 
         videoView = findViewById(R.id.videoView);
 
+        textView = findViewById(R.id.textView);
+
         MediaController mediaController = new MediaController(this);
         videoView.setMediaController(mediaController);
         mediaController.setAnchorView(videoView);
@@ -95,11 +112,14 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.saveButton) {
-            // TODO: 保存视频
+            saveVideoToGallery(this, Uri.parse(videoUri));
+            textView.setText("已保存");
+            Log.d(TAG, "saved");
 
         } else if (v.getId() == R.id.cancelButton) {
             // TODO: 返回主页面
-
+            Intent intent = new Intent(this, AddMaterialActivity.class);
+            startActivity(intent);
         }
     }
 
@@ -108,7 +128,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         // 用户点击图片时
         index = position;
         imageAdapter.setSelectedItemPosition(index);
-
+        textView.setText("生成中...");
         MyRequester.newThreadAndSendRequest(new ResponseCallback() {
                                                 @Override
                                                 public void onSuccess(CustomResponse response) {
@@ -131,10 +151,49 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
                 pathJsonStr, textSource);
     }
 
+//    @RequiresApi(api = Build.VERSION_CODES.Q)
+    private void saveVideoToGallery(Context context, Uri videoUri) {
+        try {
+            ContentResolver contentResolver = context.getContentResolver();
+
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.Video.Media.DISPLAY_NAME, "MyVideo.mp4");
+            values.put(MediaStore.Video.Media.MIME_TYPE, "video/mp4");
+            values.put(MediaStore.Video.Media.RELATIVE_PATH, Environment.DIRECTORY_DCIM);
+            Uri videoUriInMediaStore = contentResolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values);
+
+            if (videoUriInMediaStore != null) {
+                copyFileToMediaStore(context, videoUri, videoUriInMediaStore);
+            } else {
+                Log.e("VideoUtils", "Error inserting video into MediaStore.");
+            }
+        } catch (Exception e) {
+            Log.e("VideoUtils", "Error saving video: " + e.getMessage());
+        }
+    }
+
+    private static void copyFileToMediaStore(Context context, Uri sourceUri, Uri destUri) throws IOException {
+        try (FileInputStream inputStream = new FileInputStream(context.getContentResolver().openFileDescriptor(sourceUri, "r").getFileDescriptor());
+             FileOutputStream outputStream = new FileOutputStream(context.getContentResolver().openFileDescriptor(destUri, "w").getFileDescriptor())) {
+
+            FileChannel inChannel = inputStream.getChannel();
+            FileChannel outChannel = outputStream.getChannel();
+            inChannel.transferTo(0, inChannel.size(), outChannel);
+        }
+    }
+
+
     private void displaySelectedVideo(Uri videoUri) {
-        videoView.setVideoURI(videoUri);
-        videoView.requestFocus();
-        videoView.start();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                videoView.setVideoURI(videoUri);
+                videoView.requestFocus();
+                videoView.start();
+
+                textView.setText("点击下方图片可生成对应视频");
+            }
+        });
     }
 
     private int calculateItemSize(int spanCount) {

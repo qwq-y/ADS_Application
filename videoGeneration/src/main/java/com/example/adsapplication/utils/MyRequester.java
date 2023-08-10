@@ -127,6 +127,7 @@ public class MyRequester {
             multipartBuilder.addFormDataPart("video", videoFile.getName(),
                     RequestBody.create(MediaType.parse("video/*"), videoFile));
         }
+        // TODO: 修改键名
         if (frameImage != null) {
             multipartBuilder.addFormDataPart("image", frameImage.getName(),
                     RequestBody.create(MediaType.parse("image/*"), frameImage));
