@@ -33,7 +33,7 @@ public class MyRequester {
     private static final String TAG = "ww";
 
     public static void newThreadAndSendRequest(ResponseCallback callback, Context context, ContentResolver resolver,
-                                               String croppedVideoUriStr, String sourceVideoUriStr,
+                                               String originalVideoUriStr, String sourceVideoUriStr,
                                                String imageFilesUriJsonStr,
                                                Map<String, String> params, String url) {
         new Thread(new Runnable() {
@@ -41,7 +41,7 @@ public class MyRequester {
             public void run() {
                 try {
                     sendRequest(context, resolver,
-                            croppedVideoUriStr, sourceVideoUriStr,
+                            originalVideoUriStr, sourceVideoUriStr,
                             imageFilesUriJsonStr,
                             params, url)
                             .thenAccept(customResponse -> {
@@ -63,7 +63,7 @@ public class MyRequester {
     }
 
     private static CompletableFuture<CustomResponse> sendRequest(Context context, ContentResolver resolver,
-                                                                 String croppedVideoUriStr, String sourceVideoUriStr,
+                                                                 String originalVideoUriStr, String sourceVideoUriStr,
                                                                  String imageFilesUriJsonStr,
                                                                  Map<String, String> params, String url) {
 
@@ -72,9 +72,9 @@ public class MyRequester {
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
         List<File> videoFiles = new ArrayList<>();
-        if (croppedVideoUriStr != null) {
-            File croppedVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(croppedVideoUriStr));
-            videoFiles.add(croppedVideo);
+        if (originalVideoUriStr != null) {
+            File originalVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
+            videoFiles.add(originalVideo);
         }
         if (sourceVideoUriStr != null) {
             File sourceVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(sourceVideoUriStr));

@@ -30,9 +30,10 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
 
     private String TAG = "ww";
 
-    private String croppedVideoUriStr;    // 原视频
+    private String videoUriStr;    // 原视频
     private String frameUriStr;    // 第一帧原图
     private String maskUriStr;    // 掩码
+    private String startMillis, endMillis;
 
     private String videoSourceUriStr;    // 准备插入的广告
 
@@ -51,7 +52,9 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_video);
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        videoUriStr = getIntent().getStringExtra("videoUriStr");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
         maskUriStr = getIntent().getStringExtra("maskUriStr");
 
@@ -91,6 +94,10 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
             Gson gson = new Gson();
             String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
 
+            Map<String, String> params = new HashMap<>();
+            params.put("startMillis", startMillis);
+            params.put("endMillis", endMillis);
+
             String url = "http://10.25.6.55:80/aigc";
 
             MyRequester.newThreadAndSendRequest(new ResponseCallback() {
@@ -110,9 +117,9 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
                                                         Log.e(TAG, "onError callback: " + errorMessage);
                                                     }
                                                 }, this, getContentResolver(),
-                    croppedVideoUriStr, videoSourceUriStr,
+                    videoUriStr, videoSourceUriStr,
                     imageFilesUriJsonStr,
-                    null, url);
+                    params, url);
 
             Intent intent = new Intent(this, DisplayResultActivity.class);
             intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);

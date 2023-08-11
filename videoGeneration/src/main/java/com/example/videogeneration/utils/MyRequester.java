@@ -33,17 +33,17 @@ public class MyRequester {
     private static final String TAG = "ww";
 
     public static void newThreadAndSendRequest(ResponseCallback callback, Context context, ContentResolver resolver,
-                                               String croppedVideoUriStr, String frameUriStr,
+                                               String originalVideoUriStr, String frameUriStr,
                                                String imageSourceUriJsonStr, String generatedImageUriStr,
-                                               String pathJsonStr, String textSource) {
+                                               Map<String, String> params, String url) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     sendRequest(context, resolver,
-                            croppedVideoUriStr, frameUriStr,
+                            originalVideoUriStr, frameUriStr,
                             imageSourceUriJsonStr, generatedImageUriStr,
-                            pathJsonStr, textSource)
+                            params, url)
                             .thenAccept(customResponse -> {
 
                                 callback.onSuccess(customResponse);
@@ -63,15 +63,15 @@ public class MyRequester {
     }
 
     private static CompletableFuture<CustomResponse> sendRequest(Context context, ContentResolver resolver,
-                                                                 String croppedVideoUriStr, String frameUriStr,
+                                                                 String originalVideoUriStr, String frameUriStr,
                                                                  String imageSourceUriJsonStr, String generatedImageUriStr,
-                                                                 String pathJsonStr, String textSource) {
+                                                                 Map<String, String> params, String url) {
 
         Log.d(TAG, "to sendRequest");
 
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
-        File videoFile = MyConverter.getVideoFileFromUri(context, Uri.parse(croppedVideoUriStr));
+        File videoFile = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
         File frameFile = MyConverter.getImageFileFromUri(context, Uri.parse(frameUriStr), "frame.png", resolver);
         List<File> imageSource = null;
         File generatedImage = null;
@@ -82,12 +82,6 @@ public class MyRequester {
         if (generatedImageUriStr != null) {
             generatedImage = MyConverter.getImageFileFromUri(context, Uri.parse(generatedImageUriStr), "generated.png", resolver);
         }
-
-        Map<String, String> params = new HashMap<>();
-        params.put("mask", pathJsonStr);
-        params.put("text_prompt", textSource);
-
-        String url = "http://10.25.6.55:80/aigc";
 
         postADS(url, params, videoFile, frameFile, imageSource, generatedImage)
                 .thenAccept(customResponse -> {

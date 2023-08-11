@@ -40,8 +40,9 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
     private TextView textView;
     AlertDialog alertDialog;
 
-    private String croppedVideoUriStr;    // 视频
+    private String videoUriStr;    // 视频
     private String frameUriStr;    // 视频第一帧
+    private String startMillis, endMillis;
 
     private int x, y;
     private List<Point> points = new ArrayList<>();    // 用户的累积点击
@@ -61,8 +62,10 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_get_object);
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        videoUriStr = getIntent().getStringExtra("videoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
 
         gestureDetector = new GestureDetector(this, new MyGestureListener());
 
@@ -121,9 +124,15 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
             }
             if (maskUriStr != null) {
                 imageFilesUri.add(maskUriStr);
+            } else {
+                imageFilesUri.add(frameUriStr);
             }
             Gson gson = new Gson();
             String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+
+            Map<String, String> params = new HashMap<>();
+            params.put("startMillis", startMillis);
+            params.put("endMillis", endMillis);
 
             String url = "http://10.25.6.55:80/aigc";
 
@@ -144,9 +153,9 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
                                                         Log.e(TAG, "onError callback: " + errorMessage);
                                                     }
                                                 }, this, getContentResolver(),
-                    croppedVideoUriStr, null,
+                    videoUriStr, null,
                     imageFilesUriJsonStr,
-                    null, url);
+                    params, url);
 
             Intent intent = new Intent(this, DisplayResultActivity.class);
             intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
@@ -214,7 +223,7 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         String pointsJsonStr = gson.toJson(points);
         params.put("pointsJsonStr", pointsJsonStr);
 
-        String url = "http://10.25.6.55:80/aigc";
+        String url = "http://10.25.6.55:80/inpaint";
 
         MyRequester.newThreadAndSendRequest(new ResponseCallback() {
                                                 @Override

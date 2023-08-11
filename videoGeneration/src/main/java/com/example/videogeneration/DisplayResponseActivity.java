@@ -20,7 +20,7 @@ import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 import com.example.videogeneration.utils.ImageAdapter;
 import com.example.videogeneration.utils.MyConverter;
 import com.example.videogeneration.utils.MyRequester;
@@ -31,7 +31,9 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 // 注意：如果程序中，之前的页面不一定会申请运行时权限的话，本页需要添加相关代码！！！（目前Sending页申请过了）
@@ -44,6 +46,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
     private String frameUriStr;    // 视频第一帧
     private String pathJsonStr;    // 绘制的路径
     private String textSource;    // 添加的文本素材
+    private String startMillis, endMillis;
 
     private String videoUri;    // 生成的视频
     private List<String> imagesUri;    // 生成的图片列表
@@ -71,6 +74,8 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         frameUriStr = getIntent().getStringExtra("frameUriStr");
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
         textSource = getIntent().getStringExtra("textSource");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
 
         saveButton = findViewById(R.id.saveButton);
         saveButton.setOnClickListener(this);
@@ -119,6 +124,13 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
         index = position;
         imageAdapter.setSelectedItemPosition(index);
         textView.setText("生成中...");
+
+        Map<String, String> params = new HashMap<>();
+        params.put("startMillis", startMillis);
+        params.put("endMillis", endMillis);
+
+        String url = "http://10.25.6.55:80/aigc-sam";
+
         MyRequester.newThreadAndSendRequest(new ResponseCallback() {
                                                 @Override
                                                 public void onSuccess(CustomResponse response) {
@@ -138,7 +150,7 @@ public class DisplayResponseActivity extends AppCompatActivity implements View.O
                                             }, this, getContentResolver(),
                 originalVideoUri, frameUriStr,
                 null, imagesUri.get(index),
-                pathJsonStr, textSource);
+                params, url);
     }
 
 //    @RequiresApi(api = Build.VERSION_CODES.Q)

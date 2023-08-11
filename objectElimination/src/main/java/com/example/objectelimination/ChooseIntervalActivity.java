@@ -14,8 +14,8 @@ import android.widget.VideoView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.planeinsertion.R;
 import com.example.objectelimination.utils.MyConverter;
+import com.example.planeinsertion.R;
 
 import java.io.IOException;
 
@@ -106,11 +106,6 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         });
     }
 
-    private String getCroppedVideoUriStr() {
-        // TODO: 视频裁剪
-        return videoUriStr;
-    }
-
     private String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
 
         long timeInMicroseconds = timeInMillisecond * 1000;
@@ -118,7 +113,7 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         MediaMetadataRetriever mediaMetadataRetriever = new MediaMetadataRetriever();
 
         try {
-            // 设置要获取帧的视频Uri
+            // 设置要获取帧的视频 Uri
             mediaMetadataRetriever.setDataSource(ChooseIntervalActivity.this, uri);
 
             // 获取指定时间点的帧，单位为微秒
@@ -149,7 +144,10 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
             Intent intent = new Intent(this, GetObjectActivity.class);
             intent.putExtra("frameUriStr", frameUriStr);
-            intent.putExtra("croppedVideoUriStr", getCroppedVideoUriStr());
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", String.valueOf(startMillis));
+            intent.putExtra("endMillis", String.valueOf(endMillis));
+
             startActivity(intent);
 
         }

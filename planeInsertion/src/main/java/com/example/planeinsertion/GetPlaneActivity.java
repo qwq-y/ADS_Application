@@ -47,8 +47,9 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private TextView textView;
     AlertDialog alertDialog;
 
-    private String croppedVideoUriStr;    // 视频
+    private String videoUriStr;    // 视频
     private String frameUriStr;    // 视频第一帧
+    private String startMillis, endMillis;
 
     private int x, y;
     private List<Point> points = new ArrayList<>();
@@ -66,8 +67,10 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_get_plane);
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        videoUriStr = getIntent().getStringExtra("videoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
 
         gestureDetector = new GestureDetector(this, new MyGestureListener());
 
@@ -118,7 +121,9 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     public void onClick(View view) {
         if (view.getId() == R.id.okButton) {
             Intent intent = new Intent(this, AddVideoActivity.class);
-            intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", startMillis);
+            intent.putExtra("endMillis", endMillis);
             intent.putExtra("frameUriStr", frameUriStr);
             intent.putExtra("maskUriStr", maskUriStr);
             startActivity(intent);

@@ -105,11 +105,6 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         });
     }
 
-    private String getCroppedVideoUriStr() {
-        // TODO: 视频裁剪
-        return videoUriStr;
-    }
-
     private String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
 
         long timeInMicroseconds = timeInMillisecond * 1000;
@@ -148,7 +143,9 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
             Intent intent = new Intent(this, GetPlaneActivity.class);
             intent.putExtra("frameUriStr", frameUriStr);
-            intent.putExtra("croppedVideoUriStr", getCroppedVideoUriStr());
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", String.valueOf(startMillis));
+            intent.putExtra("endMillis", String.valueOf(endMillis));
             startActivity(intent);
 
         }

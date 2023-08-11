@@ -15,7 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 import com.example.videogeneration.utils.ImageAdapter;
 import com.google.gson.Gson;
 
@@ -26,9 +26,10 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
 
     private final String TAG = "ww";
 
-    private String croppedVideoUriStr;    // 裁剪后的视频 uri
+    private String videoUriStr;    // 裁剪后的视频 uri
     private String frameUriStr;    // 视频第一帧 uri
     private String pathJsonStr;    // 绘制的路径
+    private String startMillis, endMillis;
 
     private String textSource = "";    // 添加的文本素材
     private List<String> imageSourceUriStrs = new ArrayList<>();    // 添加的图片素材 uri
@@ -48,9 +49,11 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_material);
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        videoUriStr = getIntent().getStringExtra("videoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
 
         addImageButton = findViewById(R.id.addImageButton);
         addImageButton.setOnClickListener(this);
@@ -91,7 +94,9 @@ public class AddMaterialActivity extends AppCompatActivity implements View.OnCli
             Gson gson = new Gson();
             String imageSourceUriJsonStr = gson.toJson(imageSourceUriStrs);
             intent.putExtra("imageSourceUriJsonStr", imageSourceUriJsonStr);
-            intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", startMillis);
+            intent.putExtra("endMillis", endMillis);
             intent.putExtra("frameUriStr", frameUriStr);
             intent.putExtra("pathJsonStr", pathJsonStr);
             intent.putExtra("textSource", textSource);

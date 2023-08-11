@@ -14,7 +14,7 @@ import android.widget.VideoView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 import com.example.videogeneration.utils.MyConverter;
 
 import java.io.IOException;
@@ -106,11 +106,6 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
         });
     }
 
-    private String getCroppedVideoUriStr() {
-        // TODO: 视频裁剪
-        return videoUriStr;
-    }
-
     private String getVideoFrame(Uri uri, int timeInMillisecond) throws IOException {
 
         long timeInMicroseconds = timeInMillisecond * 1000;
@@ -149,7 +144,9 @@ public class ChooseIntervalActivity extends AppCompatActivity implements View.On
 
             Intent intent = new Intent(this, BrushingActivity.class);
             intent.putExtra("frameUriStr", frameUriStr);
-            intent.putExtra("croppedVideoUriStr", getCroppedVideoUriStr());
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", String.valueOf(startMillis));
+            intent.putExtra("endMillis", String.valueOf(endMillis));
             startActivity(intent);
 
         }

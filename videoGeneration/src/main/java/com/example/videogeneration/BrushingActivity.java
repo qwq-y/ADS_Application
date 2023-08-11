@@ -25,7 +25,7 @@ import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 import com.google.gson.Gson;
 
 import java.io.InputStream;
@@ -43,7 +43,8 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
     private TextView textView;
 
     private String frameUriStr;
-    private String croppedVideoUriStr;
+    private String videoUriStr;
+    private String startMillis, endMillis;
 
     private Bitmap baseBitmap;
     private Bitmap paintedBitmap;
@@ -63,7 +64,10 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
 
         imageView = findViewById(R.id.imageView);
         try {
-            croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+            videoUriStr = getIntent().getStringExtra("videoUriStr");
+
+            startMillis = getIntent().getStringExtra("startMillis");
+            endMillis = getIntent().getStringExtra("endMillis");
 
             Uri frameUri = Uri.parse(getIntent().getStringExtra("frameUriStr"));
             frameUriStr = frameUri.toString();
@@ -192,7 +196,9 @@ public class BrushingActivity extends AppCompatActivity implements View.OnClickL
             Intent intent = new Intent(this, AddMaterialActivity.class);
             intent.putExtra("pathJsonStr", pathJsonStr);
             intent.putExtra("frameUriStr", frameUriStr);
-            intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
+            intent.putExtra("videoUriStr", videoUriStr);
+            intent.putExtra("startMillis", startMillis);
+            intent.putExtra("endMillis", endMillis);
             startActivity(intent);
 
         } else if (v.getId() == R.id.retryButton) {

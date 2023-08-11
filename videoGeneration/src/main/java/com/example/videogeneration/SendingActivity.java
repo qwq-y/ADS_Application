@@ -11,14 +11,16 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 import com.example.videogeneration.utils.MyConverter;
 import com.example.videogeneration.utils.MyRequester;
 import com.example.videogeneration.utils.models.CustomResponse;
 import com.example.videogeneration.utils.models.ResponseCallback;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SendingActivity extends AppCompatActivity {
 
@@ -28,11 +30,12 @@ public class SendingActivity extends AppCompatActivity {
 
     ResponseCallback callback;
 
-    private String croppedVideoUriStr;    // 裁剪后的视频
+    private String videoUriStr;    // 裁剪后的视频
     private String frameUriStr;    // 视频第一帧
     private String pathJsonStr;    // 绘制的路径
     private String imageSourceUriJsonStr;    // 添加的图片素材
     private String textSource;    // 添加的文本素材
+    private String startMillis, endMillis;
 
     private List<String> imagesUri;
     private String videoUri;
@@ -55,11 +58,13 @@ public class SendingActivity extends AppCompatActivity {
             }
         };
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        videoUriStr = getIntent().getStringExtra("videoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
         imageSourceUriJsonStr = getIntent().getStringExtra("imageSourceUriJsonStr");
         pathJsonStr = getIntent().getStringExtra("pathJsonStr");
         textSource = getIntent().getStringExtra("textSource");
+        startMillis = getIntent().getStringExtra("startMillis");
+        endMillis = getIntent().getStringExtra("endMillis");
 
         // 检查是否已经授予了所需的权限
         if (ContextCompat.checkSelfPermission(this,
@@ -76,10 +81,7 @@ public class SendingActivity extends AppCompatActivity {
                     REQUEST_PERMISSION);
         } else {
             // 权限已被授予，新建线程发送请求
-            MyRequester.newThreadAndSendRequest(callback, this, getContentResolver(),
-                    croppedVideoUriStr, frameUriStr,
-                    imageSourceUriJsonStr, null,
-                    pathJsonStr, textSource);
+            readyToRequest();
         }
     }
 
@@ -93,16 +95,29 @@ public class SendingActivity extends AppCompatActivity {
             if (grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                     grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                // 权限已被授予，执行文件操作
-                MyRequester.newThreadAndSendRequest(callback, this, getContentResolver(),
-                        croppedVideoUriStr, frameUriStr,
-                        imageSourceUriJsonStr, null,
-                        pathJsonStr, textSource);
+                // 权限已被授予，新建线程发送请求
+                readyToRequest();
             } else {
                 // 权限被拒绝，可能需要提示用户或执行其他操作
                 Log.e(TAG, "NoPermissions");
             }
         }
+    }
+
+    private void readyToRequest() {
+
+        Map<String, String> params = new HashMap<>();
+        params.put("mask", pathJsonStr);
+        params.put("text_prompt", textSource);
+        params.put("startMillis", startMillis);
+        params.put("endMillis", endMillis);
+
+        String url = "http://10.25.6.55:80/aigc";
+
+        MyRequester.newThreadAndSendRequest(callback, this, getContentResolver(),
+                videoUriStr, frameUriStr,
+                imageSourceUriJsonStr, null,
+                params, url);
     }
 
     private void handleOnSuccess(CustomResponse response) {
@@ -126,7 +141,9 @@ public class SendingActivity extends AppCompatActivity {
             Intent intent = new Intent(this, DisplayResponseActivity.class);
             intent.putStringArrayListExtra("imagesUri", new ArrayList<>(imagesUri));
             intent.putExtra("videoUri", videoUri);
-            intent.putExtra("originalVideoUri", croppedVideoUriStr);
+            intent.putExtra("originalVideoUri", videoUriStr);
+            intent.putExtra("startMillis", String.valueOf(startMillis));
+            intent.putExtra("endMillis", String.valueOf(endMillis));
             intent.putExtra("frameUriStr", frameUriStr);
             intent.putExtra("pathJsonStr", pathJsonStr);
             intent.putExtra("textSource", textSource);
