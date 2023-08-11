@@ -17,5 +17,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "ADS Application"
 include ':videoGeneration'
-
 include ':planeInsertion'
+include ':objectElimination'

@@ -1,32 +1,25 @@
-package com.example.planeinsertion;
-
-import androidx.appcompat.app.AppCompatActivity;
+package com.example.objectelimination;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.GestureDetector;
-import android.view.Gravity;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.objectelimination.utils.models.CustomResponse;
+import com.example.objectelimination.utils.models.ResponseCallback;
 import com.example.planeinsertion.R;
-import com.example.planeinsertion.utils.MyConverter;
-import com.example.planeinsertion.utils.MyRequester;
-import com.example.planeinsertion.utils.models.CustomResponse;
-import com.example.planeinsertion.utils.models.Point;
-import com.example.planeinsertion.utils.models.ResponseCallback;
+import com.example.objectelimination.utils.MyConverter;
+import com.example.objectelimination.utils.MyRequester;
+import com.example.objectelimination.utils.models.Point;
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -37,7 +30,7 @@ import java.util.Map;
 
 // TODO: 同一和后端的各个键名、url、图片收发顺序等
 
-public class GetPlaneActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener {
+public class GetObjectActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener {
 
     private String TAG = "ww";
 
@@ -51,10 +44,12 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private String frameUriStr;    // 视频第一帧
 
     private int x, y;
-    private List<Point> points = new ArrayList<>();
+    private List<Point> points = new ArrayList<>();    // 用户的累积点击
 
-    private String maskUriStr;
-    private String frameWithMaskUriStr;
+    private String maskUriStr;     // 掩码
+    private String frameWithMaskUriStr;    // 带掩码的视频第一帧（用于给用户预览）
+
+    private String generatedVideoUriStr;    // 生成的视频
 
     private GestureDetector gestureDetector;
 
@@ -64,7 +59,7 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_get_plane);
+        setContentView(R.layout.activity_get_object);
 
         croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
@@ -117,11 +112,46 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.okButton) {
-            Intent intent = new Intent(this, AddVideoActivity.class);
-            intent.putExtra("croppedVideoUriStr", croppedVideoUriStr);
-            intent.putExtra("frameUriStr", frameUriStr);
-            intent.putExtra("maskUriStr", maskUriStr);
+
+            // 把确定好的掩码、视频、视频第一帧发送给后端，生成视频
+
+            List<String> imageFilesUri = new ArrayList<>();
+            if (frameUriStr != null) {
+                imageFilesUri.add(frameUriStr);
+            }
+            if (maskUriStr != null) {
+                imageFilesUri.add(maskUriStr);
+            }
+            Gson gson = new Gson();
+            String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+
+            String url = "http://10.25.6.55:80/aigc";
+
+            MyRequester.newThreadAndSendRequest(new ResponseCallback() {
+                                                    @Override
+                                                    public void onSuccess(CustomResponse response) {
+                                                        Log.d(TAG, "onSuccess callback");
+                                                        try {
+                                                            String video = response.getVideo();
+                                                            generatedVideoUriStr = MyConverter.convertVideoToUri(GetObjectActivity.this, video);
+                                                        } catch (Exception e) {
+                                                            Log.e(TAG, "convert video: " + e.getMessage());
+                                                        }
+                                                    }
+
+                                                    @Override
+                                                    public void onError(String errorMessage) {
+                                                        Log.e(TAG, "onError callback: " + errorMessage);
+                                                    }
+                                                }, this, getContentResolver(),
+                    croppedVideoUriStr, null,
+                    imageFilesUriJsonStr,
+                    null, url);
+
+            Intent intent = new Intent(this, DisplayResultActivity.class);
+            intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
             startActivity(intent);
+
         } else if (view.getId() == R.id.retryButton) {
             points = new ArrayList<>();
             maskUriStr = null;
@@ -187,34 +217,34 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         String url = "http://10.25.6.55:80/aigc";
 
         MyRequester.newThreadAndSendRequest(new ResponseCallback() {
-                @Override
-                public void onSuccess(CustomResponse response) {
-                    Log.d(TAG, "onSuccess callback");
-                    try {
+                                                @Override
+                                                public void onSuccess(CustomResponse response) {
+                                                    Log.d(TAG, "onSuccess callback");
+                                                    try {
 
-                        List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetPlaneActivity.this, response.getImages());
-                        maskUriStr = imagesUri.get(0);
-                        frameWithMaskUriStr = imagesUri.get(1);
+                                                        List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetObjectActivity.this, response.getImages());
+                                                        maskUriStr = imagesUri.get(0);
+                                                        frameWithMaskUriStr = imagesUri.get(1);
 
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                imageView.setImageURI(Uri.parse(frameWithMaskUriStr));
-                            }
-                        });
+                                                        runOnUiThread(new Runnable() {
+                                                            @Override
+                                                            public void run() {
+                                                                imageView.setImageURI(Uri.parse(frameWithMaskUriStr));
+                                                            }
+                                                        });
 
-                        alertDialog.dismiss();
+                                                        alertDialog.dismiss();
 
-                    } catch (Exception e) {
-                        Log.e(TAG, "convert images: " + e.getMessage());
-                    }
-                }
+                                                    } catch (Exception e) {
+                                                        Log.e(TAG, "convert images: " + e.getMessage());
+                                                    }
+                                                }
 
-                @Override
-                public void onError(String errorMessage) {
-                    Log.e(TAG, "onError callback: " + errorMessage);
-                }
-            }, this, getContentResolver(),
+                                                @Override
+                                                public void onError(String errorMessage) {
+                                                    Log.e(TAG, "onError callback: " + errorMessage);
+                                                }
+                                            }, this, getContentResolver(),
                 null, null, imageFilesUriJsonStr,
                 params, url);
     }

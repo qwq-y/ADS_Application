@@ -31,6 +31,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
     private String TAG = "ww";
 
     private String croppedVideoUriStr;    // 原视频
+    private String frameUriStr;    // 第一帧原图
     private String maskUriStr;    // 掩码
 
     private String videoSourceUriStr;    // 准备插入的广告
@@ -50,6 +51,10 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_choose_video);
 
+        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
+        frameUriStr = getIntent().getStringExtra("frameUriStr");
+        maskUriStr = getIntent().getStringExtra("maskUriStr");
+
         videoView = findViewById(R.id.videoView);
 
         MediaController mediaController = new MediaController(this);
@@ -57,6 +62,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         mediaController.setAnchorView(videoView);
 
         textView = findViewById(R.id.textView);
+        textView.setText("请选择插入平面的视频");
 
         addButton = findViewById(R.id.addButton);
         addButton.setOnClickListener(this);
@@ -69,9 +75,6 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         retryButton.setOnClickListener(this);
         retryButton.setVisibility(View.GONE);
 
-        croppedVideoUriStr = getIntent().getStringExtra("croppedVideoUriStr");
-        maskUriStr = getIntent().getStringExtra("maskUriStr");
-
     }
 
     @Override
@@ -79,7 +82,12 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         if (v.getId() == R.id.okButton) {
 
             List<String> imageFilesUri = new ArrayList<>();
-            imageFilesUri.add(maskUriStr);
+            if (frameUriStr != null) {
+                imageFilesUri.add(frameUriStr);
+            }
+            if (maskUriStr != null) {
+                imageFilesUri.add(maskUriStr);
+            }
             Gson gson = new Gson();
             String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
 

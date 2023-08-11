@@ -1,4 +1,4 @@
-package com.example.planeinsertion;
+package com.example.objectelimination;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -15,6 +15,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.MediaController;
 import android.widget.VideoView;
+
+import com.example.planeinsertion.R;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;

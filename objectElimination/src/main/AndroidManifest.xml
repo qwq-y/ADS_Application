@@ -13,27 +13,20 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.ADSApplication"
         android:usesCleartextTraffic="true"
-        android:requestLegacyExternalStorage="true"
         tools:targetApi="31">
-
         <activity
-            android:name="com.example.videogeneration.DisplayResponseActivity"
+            android:name="com.example.objectelimination.DisplayResultActivity"
             android:exported="false" />
         <activity
-            android:name="com.example.videogeneration.SendingActivity"
+            android:name="com.example.objectelimination.GetObjectActivity"
             android:exported="false" />
         <activity
-            android:name="com.example.videogeneration.AddMaterialActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.example.videogeneration.BrushingActivity"
-            android:exported="false" />
-        <activity
-            android:name="com.example.videogeneration.ChooseIntervalActivity"
+            android:name="com.example.objectelimination.ChooseIntervalActivity"
             android:exported="false" />
 
         <uses-library
@@ -41,7 +34,7 @@
             android:required="false" />
 
         <activity
-            android:name="com.example.videogeneration.ChooseVideoActivity"
+            android:name="com.example.objectelimination.ChooseVideoActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

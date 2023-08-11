@@ -1,19 +1,19 @@
-package com.example.planeinsertion;
+package com.example.videogeneration;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
+
+import com.example.videogeneration.R;
 
 public class ChooseVideoActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -41,7 +41,6 @@ public class ChooseVideoActivity extends AppCompatActivity implements View.OnCli
         mediaController.setAnchorView(videoView);
 
         textView = findViewById(R.id.textView);
-        textView.setText("请选择您要编辑的视频");
 
         addButton = findViewById(R.id.addButton);
         addButton.setOnClickListener(this);
