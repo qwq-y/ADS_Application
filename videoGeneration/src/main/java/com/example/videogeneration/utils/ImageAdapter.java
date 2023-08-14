@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 
 import java.util.List;
 

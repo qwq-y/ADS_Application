@@ -13,7 +13,7 @@ import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
 
-import com.example.videogeneration.R;
+import com.example.adsapplication.R;
 
 public class ChooseVideoActivity extends AppCompatActivity implements View.OnClickListener {
 
