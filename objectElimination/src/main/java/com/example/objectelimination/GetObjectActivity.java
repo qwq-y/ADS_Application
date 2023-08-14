@@ -1,7 +1,9 @@
 package com.example.objectelimination;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,7 +14,10 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import com.example.objectelimination.utils.models.CustomResponse;
 import com.example.objectelimination.utils.models.ResponseCallback;
@@ -28,11 +33,17 @@ import java.util.List;
 import java.util.Map;
 
 
-// TODO: 同一和后端的各个键名、url、图片收发顺序等
+// TODO: 统一和后端的各个键名、url、图片收发顺序等
+// 这里在选择 mask 的时候申请了运行时权限（并且回调函数也是 mask 相关），所以必须选 mask。
 
 public class GetObjectActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener {
 
     private String TAG = "ww";
+
+    private static final int REQUEST_PERMISSION = 123;
+    private boolean isPermitted = false;
+    private boolean hasMask = false;
+    private ResponseCallback maskCallback;
 
     private ImageView imageView;
     private Button retryButton;
@@ -61,6 +72,18 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_get_object);
+
+        maskCallback = new ResponseCallback() {
+            @Override
+            public void onSuccess(CustomResponse response) {
+                handleOnMaskSuccess(response);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                handleOnMaskError(errorMessage);
+            }
+        };
 
         videoUriStr = getIntent().getStringExtra("videoUriStr");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
@@ -104,8 +127,8 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         imageViewY = location[1];
         imageViewWidth = imageView.getWidth();
         imageViewHeight = imageView.getHeight();
-        Log.d(TAG, "image view info: \n" + imageViewX + "\n" + imageViewY + "\n" + imageViewWidth + "\n" + imageViewHeight);
-        Log.d(TAG, "[" + imageViewX + ", " + (imageViewX + imageViewWidth) + "][" + imageViewY + ", " + (imageViewY + imageViewHeight) + "]");
+//        Log.d(TAG, "image view info: \n" + imageViewX + "\n" + imageViewY + "\n" + imageViewWidth + "\n" + imageViewHeight);
+//        Log.d(TAG, "[" + imageViewX + ", " + (imageViewX + imageViewWidth) + "][" + imageViewY + ", " + (imageViewY + imageViewHeight) + "]");
     }
 
     private boolean isCoordinateInsideImage(int x, int y) {
@@ -115,52 +138,54 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.okButton) {
+            if (hasMask) {
+                // 把确定好的掩码、视频、视频第一帧发送给后端，生成视频
 
-            // 把确定好的掩码、视频、视频第一帧发送给后端，生成视频
+                List<String> imageFilesUri = new ArrayList<>();
+                if (frameUriStr != null) {
+                    imageFilesUri.add(frameUriStr);
+                }
+                if (maskUriStr != null) {
+                    imageFilesUri.add(maskUriStr);
+                } else {
+                    imageFilesUri.add(frameUriStr);
+                }
+                Gson gson = new Gson();
+                String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
 
-            List<String> imageFilesUri = new ArrayList<>();
-            if (frameUriStr != null) {
-                imageFilesUri.add(frameUriStr);
-            }
-            if (maskUriStr != null) {
-                imageFilesUri.add(maskUriStr);
-            } else {
-                imageFilesUri.add(frameUriStr);
-            }
-            Gson gson = new Gson();
-            String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+                Map<String, String> params = new HashMap<>();
+                params.put("startMillis", startMillis);
+                params.put("endMillis", endMillis);
 
-            Map<String, String> params = new HashMap<>();
-            params.put("startMillis", startMillis);
-            params.put("endMillis", endMillis);
+                String url = "http://10.25.6.55:80/aigc";
 
-            String url = "http://10.25.6.55:80/aigc";
+                Log.d(TAG, "prepared");
 
-            MyRequester.newThreadAndSendRequest(new ResponseCallback() {
-                                                    @Override
-                                                    public void onSuccess(CustomResponse response) {
-                                                        Log.d(TAG, "onSuccess callback");
-                                                        try {
-                                                            String video = response.getVideo();
-                                                            generatedVideoUriStr = MyConverter.convertVideoToUri(GetObjectActivity.this, video);
-                                                        } catch (Exception e) {
-                                                            Log.e(TAG, "convert video: " + e.getMessage());
+                MyRequester.newThreadAndSendRequest(new ResponseCallback() {
+                                                        @Override
+                                                        public void onSuccess(CustomResponse response) {
+                                                            Log.d(TAG, "onSuccess callback");
+                                                            try {
+                                                                String video = response.getVideo();
+                                                                generatedVideoUriStr = MyConverter.convertVideoToUri(GetObjectActivity.this, video);
+                                                            } catch (Exception e) {
+                                                                Log.e(TAG, "convert video: " + e.getMessage());
+                                                            }
                                                         }
-                                                    }
 
-                                                    @Override
-                                                    public void onError(String errorMessage) {
-                                                        Log.e(TAG, "onError callback: " + errorMessage);
-                                                    }
-                                                }, this, getContentResolver(),
-                    videoUriStr, null,
-                    imageFilesUriJsonStr,
-                    params, url);
+                                                        @Override
+                                                        public void onError(String errorMessage) {
+                                                            Log.e(TAG, "onError callback: " + errorMessage);
+                                                        }
+                                                    }, this, getContentResolver(),
+                        videoUriStr, null,
+                        imageFilesUriJsonStr,
+                        params, url);
 
-            Intent intent = new Intent(this, DisplayResultActivity.class);
-            intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
-            startActivity(intent);
-
+                Intent intent = new Intent(this, DisplayResultActivity.class);
+                intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
+                startActivity(intent);
+            }
         } else if (view.getId() == R.id.retryButton) {
             points = new ArrayList<>();
             maskUriStr = null;
@@ -211,6 +236,48 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
 
         textView.setText("识别中\n（单击选择区域，长按取消选择）");
 
+        // 检查是否已经授予了所需的权限
+        if (isPermitted || (ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)) {
+            // 如果权限没有被授予，请求权限
+            Log.d(TAG, "requestPermissions");
+            ActivityCompat.requestPermissions(this,
+                    new String[]{
+                            Manifest.permission.READ_EXTERNAL_STORAGE,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    },
+                    REQUEST_PERMISSION);
+        } else {
+            // 权限已被授予，新建线程发送请求
+            isPermitted = true;
+            readyToRequestMask();
+        }
+    }
+
+    // 处理权限请求的结果
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_PERMISSION) {
+            if (grantResults.length > 0 &&
+                    grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                    grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                // 权限已被授予，新建线程发送请求
+                isPermitted = true;
+                readyToRequestMask();
+            } else {
+                // 权限被拒绝，可能需要提示用户或执行其他操作
+                isPermitted = false;
+                Log.e(TAG, "NoPermissions");
+            }
+        }
+    }
+
+    private void readyToRequestMask() {
         List<String> imageFilesUri = new ArrayList<>();
         imageFilesUri.add(frameUriStr);
         if (maskUriStr != null) {
@@ -225,38 +292,38 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
 
         String url = "http://10.25.6.55:80/inpaint";
 
-        MyRequester.newThreadAndSendRequest(new ResponseCallback() {
-                                                @Override
-                                                public void onSuccess(CustomResponse response) {
-                                                    Log.d(TAG, "onSuccess callback");
-                                                    try {
-
-                                                        List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetObjectActivity.this, response.getImages());
-                                                        maskUriStr = imagesUri.get(0);
-                                                        frameWithMaskUriStr = imagesUri.get(1);
-
-                                                        runOnUiThread(new Runnable() {
-                                                            @Override
-                                                            public void run() {
-                                                                imageView.setImageURI(Uri.parse(frameWithMaskUriStr));
-                                                            }
-                                                        });
-
-                                                        alertDialog.dismiss();
-
-                                                    } catch (Exception e) {
-                                                        Log.e(TAG, "convert images: " + e.getMessage());
-                                                    }
-                                                }
-
-                                                @Override
-                                                public void onError(String errorMessage) {
-                                                    Log.e(TAG, "onError callback: " + errorMessage);
-                                                }
-                                            }, this, getContentResolver(),
+        MyRequester.newThreadAndSendRequest(maskCallback, this, getContentResolver(),
                 null, null, imageFilesUriJsonStr,
                 params, url);
     }
 
+    private void handleOnMaskSuccess(CustomResponse response) {
+
+        Log.d(TAG, "onSuccess callback");
+        hasMask = true;
+
+        try {
+
+            List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetObjectActivity.this, response.getImages());
+            maskUriStr = imagesUri.get(0);
+            frameWithMaskUriStr = imagesUri.get(1);
+
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    imageView.setImageURI(Uri.parse(frameWithMaskUriStr));
+                }
+            });
+
+            alertDialog.dismiss();
+
+        } catch (Exception e) {
+            Log.e(TAG, "convert images: " + e.getMessage());
+        }
+    }
+
+    private void handleOnMaskError(String errorMessage) {
+        Log.e(TAG, "onError callback: " + errorMessage);
+    }
 
 }

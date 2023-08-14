@@ -28,7 +28,7 @@ public class SendingActivity extends AppCompatActivity {
 
     private static final int REQUEST_PERMISSION = 123;
 
-    ResponseCallback callback;
+    private ResponseCallback callback;
 
     private String videoUriStr;    // 裁剪后的视频
     private String frameUriStr;    // 视频第一帧

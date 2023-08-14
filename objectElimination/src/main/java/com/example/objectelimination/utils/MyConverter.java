@@ -64,7 +64,7 @@ public class MyConverter  {
 
     public static File saveToTempFile(Context context, byte[] data, String fileExtension) throws IOException {
 
-        File cacheDir = context.getCacheDir(); // context.getExternalFilesDir(null)
+        File cacheDir = context.getCacheDir();
 
         String tempFileName = "temp_" + System.currentTimeMillis() + fileExtension;
         File tempFile = new File(cacheDir, tempFileName);
