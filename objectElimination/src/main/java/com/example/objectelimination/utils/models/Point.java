@@ -3,7 +3,7 @@ package com.example.objectelimination.utils.models;
 public class Point {
     private int x;
     private int y;
-    private int isLongPress;    // 1: long, 2: short
+    private int isLongPress;    // 1: long, 0: short
 
     public Point() {
     }

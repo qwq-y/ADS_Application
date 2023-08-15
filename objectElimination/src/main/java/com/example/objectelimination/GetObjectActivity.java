@@ -4,6 +4,9 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Matrix;
+import android.graphics.PointF;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
@@ -55,7 +58,8 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
     private String frameUriStr;    // 视频第一帧
     private String startMillis, endMillis;
 
-    private int x, y;
+    private int rawX, rawY;
+    private int imageX, imageY;
     private List<Point> points = new ArrayList<>();    // 用户的累积点击
 
     private String maskUriStr;     // 掩码
@@ -105,8 +109,8 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         okButton.setOnClickListener(this);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("加载中");
-        builder.setMessage("正在处理点击事件，请稍等...");
+        builder.setTitle("分析中...");
+        builder.setMessage("");
         builder.setCancelable(false);  // 设置对话框不可取消
         alertDialog = builder.create();
 
@@ -123,16 +127,52 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
     private void setImageViewInfo() {
         int[] location = new int[2];
         imageView.getLocationOnScreen(location);
-        imageViewX = location[0];
+        imageViewX = location[0];    // 不知道有啥用
         imageViewY = location[1];
         imageViewWidth = imageView.getWidth();
         imageViewHeight = imageView.getHeight();
-//        Log.d(TAG, "image view info: \n" + imageViewX + "\n" + imageViewY + "\n" + imageViewWidth + "\n" + imageViewHeight);
-//        Log.d(TAG, "[" + imageViewX + ", " + (imageViewX + imageViewWidth) + "][" + imageViewY + ", " + (imageViewY + imageViewHeight) + "]");
+        Log.d(TAG, "图片大小: " + imageViewWidth + "x" + imageViewHeight);
     }
 
     private boolean isCoordinateInsideImage(int x, int y) {
         return x >= 0 && x <= imageViewWidth && y >= 0 && y <= imageViewHeight;
+    }
+
+    public boolean onTouch(View v, MotionEvent event) {
+        if (v.getId() == R.id.imageView) {
+            gestureDetector.onTouchEvent(event);
+
+            rawX = (int) event.getX();
+            rawY = (int) event.getY();
+
+            imageX = rawX;
+            imageY = rawY;
+
+//            int[] location = new int[2];
+//            imageView.getLocationOnScreen(location);
+//
+//            // 获取图片的矩阵变换
+//            Matrix matrix = new Matrix();
+//            matrix.set(imageView.getImageMatrix());
+//            matrix.postTranslate(location[0], location[1]);
+//
+//            // 计算用户在ImageView内部的图片上的位置
+//            float[] points = new float[]{rawX, rawY};
+//            matrix.invert(matrix);
+//            matrix.mapPoints(points);
+//
+//            imageX = (int)points[0];
+//            imageY = (int)points[1];
+
+            if (isCoordinateInsideImage(imageX, imageY)) {
+                Log.d(TAG, "rawX = " + rawX + ", rawY = " + rawY);
+                Log.d(TAG, "imageX = " + imageX + ", imageY = " + imageY);
+            } else {
+                Log.d(TAG, "不在图片范围内");
+            }
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -193,22 +233,6 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         }
     }
 
-    public boolean onTouch(View v, MotionEvent event) {
-        if (v.getId() == R.id.imageView) {
-            gestureDetector.onTouchEvent(event);
-            x = (int) event.getX();
-            y = (int) event.getY();
-
-            if (isCoordinateInsideImage(x, y)) {
-                Log.d(TAG, "坐标：x = " + x + ", y = " + y);
-            } else {
-                Log.d(TAG, "不在图片范围内");
-            }
-            return true;
-        }
-        return false;
-    }
-
     private class MyGestureListener extends GestureDetector.SimpleOnGestureListener {
         @Override
         public boolean onDown(MotionEvent event) {
@@ -217,14 +241,14 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
 
         @Override
         public void onLongPress(MotionEvent event) {
-            Point point = new Point(x, y, 1);
+            Point point = new Point(imageX, imageY, 1);
             points.add(point);
             processClickImage();
         }
 
         @Override
         public boolean onSingleTapConfirmed(MotionEvent event) {
-            Point point = new Point(x, y, 0);
+            Point point = new Point(imageX, imageY, 0);
             points.add(point);
             processClickImage();
             return true;
@@ -290,7 +314,7 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         String pointsJsonStr = gson.toJson(points);
         params.put("pointsJsonStr", pointsJsonStr);
 
-        String url = "http://10.25.6.55:80/inpaint";
+        String url = "http://172.18.36.107:5002/aigc-sam";
 
         MyRequester.newThreadAndSendRequest(maskCallback, this, getContentResolver(),
                 null, null, imageFilesUriJsonStr,
@@ -305,8 +329,8 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         try {
 
             List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetObjectActivity.this, response.getImages());
-            maskUriStr = imagesUri.get(0);
-            frameWithMaskUriStr = imagesUri.get(1);
+            frameWithMaskUriStr = imagesUri.get(0);
+            maskUriStr = imagesUri.get(1);
 
             runOnUiThread(new Runnable() {
                 @Override

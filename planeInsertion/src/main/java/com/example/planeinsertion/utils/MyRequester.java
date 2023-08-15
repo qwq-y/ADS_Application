@@ -215,7 +215,7 @@ public class MyRequester {
             }
 
             // 获取图像列表
-            String imagesKey = "ImageBytes";
+            String imagesKey = "Content";
             if (jsonObject.has(imagesKey)) {
                 JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
                 if (imageArray != null) {

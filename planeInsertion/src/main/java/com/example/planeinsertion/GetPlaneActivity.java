@@ -104,8 +104,8 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         okButton.setOnClickListener(this);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("加载中");
-        builder.setMessage("正在处理点击事件，请稍等...");
+        builder.setTitle("分析中...");
+        builder.setMessage("");
         builder.setCancelable(false);  // 设置对话框不可取消
         alertDialog = builder.create();
 
