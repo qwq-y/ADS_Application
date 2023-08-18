@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.android.volley.Request;
 import com.example.objectelimination.utils.models.CustomResponse;
 import com.example.objectelimination.utils.models.ResponseCallback;
 import com.example.planeinsertion.R;
@@ -30,10 +31,18 @@ import com.example.objectelimination.utils.MyRequester;
 import com.example.objectelimination.utils.models.Point;
 import com.google.gson.Gson;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.RequestBody;
+import okhttp3.Response;
 
 
 // TODO: 统一和后端的各个键名、url、图片收发顺序等
@@ -175,57 +184,89 @@ public class GetObjectActivity extends AppCompatActivity implements View.OnClick
         return false;
     }
 
+    private void testCllava() {
+        List<String> imageFilesUri = new ArrayList<>();
+        imageFilesUri.add(frameUriStr);
+        Gson gson = new Gson();
+        String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+
+        Map<String, String> params = new HashMap<>();
+        params.put("model_name", "/ssd-sata1/shixi/Chinese-LLaVA-Cllama2");
+        params.put("llm_type", "Chinese_llama2");
+        params.put("image_file", "/home/gmq_shixi/models/Chinese-LLaVA/image_input/ddxie.png");
+        params.put("query", "请描述一下图片");
+
+        String url = "http://10.25.6.55:80/Cllava";
+
+        MyRequester.newThreadAndSendRequest(new ResponseCallback() {
+                                                @Override
+                                                public void onSuccess(CustomResponse response) {
+                                                    Log.d(TAG, "Cllava onSuccess callback");
+                                                    Log.d(TAG, response.getMessage());
+                                                }
+
+                                                @Override
+                                                public void onError(String errorMessage) {
+                                                    Log.e(TAG, "Cllava onError callback: " + errorMessage);
+                                                }
+                                            }, this, getContentResolver(),
+                null, null, imageFilesUriJsonStr,
+                params, url);
+    }
+
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.okButton) {
-            if (hasMask) {
-                // 把确定好的掩码、视频、视频第一帧发送给后端，生成视频
+            // TODO
+            testCllava();
+//            if (hasMask) {
+//                // 把确定好的掩码、视频、视频第一帧发送给后端，生成视频
+//                List<String> imageFilesUri = new ArrayList<>();
+//                if (frameUriStr != null) {
+//                    imageFilesUri.add(frameUriStr);
+//                }
+//                if (maskUriStr != null) {
+//                    imageFilesUri.add(maskUriStr);
+//                } else {
+//                    imageFilesUri.add(frameUriStr);
+//                }
+//                Gson gson = new Gson();
+//                String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
+//
+//                Map<String, String> params = new HashMap<>();
+//                params.put("startMillis", startMillis);
+//                params.put("endMillis", endMillis);
+//
+//                String url = "http://10.25.6.55:80/aigc";
+//
+//                Log.d(TAG, "prepared");
+//
+//                MyRequester.newThreadAndSendRequest(new ResponseCallback() {
+//                                                        @Override
+//                                                        public void onSuccess(CustomResponse response) {
+//                                                            Log.d(TAG, "onSuccess callback");
+//                                                            try {
+//                                                                String video = response.getVideo();
+//                                                                generatedVideoUriStr = MyConverter.convertVideoToUri(GetObjectActivity.this, video);
+//                                                            } catch (Exception e) {
+//                                                                Log.e(TAG, "convert video: " + e.getMessage());
+//                                                            }
+//                                                        }
+//
+//                                                        @Override
+//                                                        public void onError(String errorMessage) {
+//                                                            Log.e(TAG, "onError callback: " + errorMessage);
+//                                                        }
+//                                                    }, this, getContentResolver(),
+//                        videoUriStr, null,
+//                        imageFilesUriJsonStr,
+//                        params, url);
+//
+//                Intent intent = new Intent(this, DisplayResultActivity.class);
+//                intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
+//                startActivity(intent);
+//            }
 
-                List<String> imageFilesUri = new ArrayList<>();
-                if (frameUriStr != null) {
-                    imageFilesUri.add(frameUriStr);
-                }
-                if (maskUriStr != null) {
-                    imageFilesUri.add(maskUriStr);
-                } else {
-                    imageFilesUri.add(frameUriStr);
-                }
-                Gson gson = new Gson();
-                String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
-
-                Map<String, String> params = new HashMap<>();
-                params.put("startMillis", startMillis);
-                params.put("endMillis", endMillis);
-
-                String url = "http://10.25.6.55:80/aigc";
-
-                Log.d(TAG, "prepared");
-
-                MyRequester.newThreadAndSendRequest(new ResponseCallback() {
-                                                        @Override
-                                                        public void onSuccess(CustomResponse response) {
-                                                            Log.d(TAG, "onSuccess callback");
-                                                            try {
-                                                                String video = response.getVideo();
-                                                                generatedVideoUriStr = MyConverter.convertVideoToUri(GetObjectActivity.this, video);
-                                                            } catch (Exception e) {
-                                                                Log.e(TAG, "convert video: " + e.getMessage());
-                                                            }
-                                                        }
-
-                                                        @Override
-                                                        public void onError(String errorMessage) {
-                                                            Log.e(TAG, "onError callback: " + errorMessage);
-                                                        }
-                                                    }, this, getContentResolver(),
-                        videoUriStr, null,
-                        imageFilesUriJsonStr,
-                        params, url);
-
-                Intent intent = new Intent(this, DisplayResultActivity.class);
-                intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
-                startActivity(intent);
-            }
         } else if (view.getId() == R.id.retryButton) {
             points = new ArrayList<>();
             maskUriStr = null;

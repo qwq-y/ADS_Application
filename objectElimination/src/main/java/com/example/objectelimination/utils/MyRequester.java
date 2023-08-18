@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -30,6 +31,8 @@ import okhttp3.Response;
 public class MyRequester {
 
     private static final String TAG = "ww";
+
+    private static final int TIMEOUT_SECONDS = 300; // 设置超时时间为300秒
 
     public static void newThreadAndSendRequest(ResponseCallback callback, Context context, ContentResolver resolver,
                                                String originalVideoUriStr, String sourceVideoUriStr,
@@ -108,7 +111,12 @@ public class MyRequester {
 
         Log.d(TAG, "to postADS");
 
-        OkHttpClient client = new OkHttpClient();
+//        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS) // 连接超时时间
+                .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)    // 读取超时时间
+                .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)   // 写入超时时间
+                .build();
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);
