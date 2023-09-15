@@ -10,4 +10,5 @@
 ![image](https://github.com/qwq-y/ADS_Application/assets/94696811/bbdd1619-c9d3-4811-bc7f-e75980cf4092)
 ![image](https://github.com/qwq-y/ADS_Application/assets/94696811/fc803c36-51d9-41d3-b9e0-44d633467c99)
 ![image](https://github.com/qwq-y/ADS_Application/assets/94696811/0cfbec01-8f68-4bb2-a6da-7fe1ab8afe51)
-![image](https://github.com/qwq-y/ADS_Application/assets/94696811/60ca2096-a9a3-462f-949b-0dddc330fe29)
+![image](https://github.com/qwq-y/ADS_Application/assets/94696811/a99864ce-f3f8-4ae6-ae71-7b0c2d336f8b)
+
