@@ -71,11 +71,9 @@ public class MyRequester {
 
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
+        File originalVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
+
         List<File> videoFiles = new ArrayList<>();
-        if (originalVideoUriStr != null) {
-            File originalVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
-            videoFiles.add(originalVideo);
-        }
         if (sourceVideoUriStr != null) {
             File sourceVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(sourceVideoUriStr));
             videoFiles.add(sourceVideo);
@@ -86,7 +84,7 @@ public class MyRequester {
             imageFiles = MyConverter.getFileListFromJson(context, imageFilesUriJsonStr, resolver);;
         }
 
-        postADS(url, params, videoFiles, imageFiles)
+        postADS(url, params, originalVideo, videoFiles, imageFiles)
                 .thenAccept(customResponse -> {
 
                     future.complete(customResponse);
@@ -105,7 +103,7 @@ public class MyRequester {
 
     private static CompletableFuture<CustomResponse> postADS(
             String url, Map<String, String> params,
-            List<File> videoFiles, List<File> imageFiles) {
+            File videoFile, List<File> sourceVideoFiles, List<File> imageFiles) {
 
         Log.d(TAG, "to postADS");
 
@@ -120,14 +118,19 @@ public class MyRequester {
                 multipartBuilder.addFormDataPart(entry.getKey(), entry.getValue());
             }
         }
-        if (videoFiles != null) {
-            for (File video : videoFiles) {
+        if (videoFile != null && videoFile.exists()) {
+            multipartBuilder.addFormDataPart("video", videoFile.getName(),
+                    RequestBody.create(MediaType.parse("video/*"), videoFile));
+        }
+        if (sourceVideoFiles != null) {
+            for (File video : sourceVideoFiles) {
                 if (video != null && video.exists()) {
-                    multipartBuilder.addFormDataPart("video", video.getName(),
+                    multipartBuilder.addFormDataPart("resources", video.getName(),
                             RequestBody.create(MediaType.parse("video/*"), video));
                 }
             }
         }
+        // TODO: 现在后端名字还不统一，有 image 也有 images
         if (imageFiles != null && !imageFiles.isEmpty()) {
             for (File image : imageFiles) {
                 if (image != null && image.exists()) {
@@ -203,6 +206,7 @@ public class MyRequester {
                 Log.d(TAG, messageKey + " not found in reply");
             }
 
+            // TODO: 和后端对接
             // 获取视频
             String videoKey = "VideoBytes";
             if (jsonObject.has(videoKey)) {
