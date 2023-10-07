@@ -50,6 +50,8 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private TextView textView;
     AlertDialog alertDialog;
 
+    String user = "qwq-y";
+
     private String videoUriStr;    // 视频
     private String frameUriStr;    // 视频第一帧
     private String startMillis, endMillis;
@@ -57,10 +59,8 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private int x, y;
     private List<Point> points = new ArrayList<>();    // 用户的累积点击
 
-    private String maskUriStr;     // 掩码
-    private String frameWithMaskUriStr;    // 带掩码的视频第一帧（用于给用户预览）
-
-    private String generatedVideoUriStr;    // 生成的视频
+    private String fourChannelImageUriStr;     // 四通道图
+    private String paintedImageUriStr;    // 带掩码的视频第一帧（用于给用户预览）
 
     private GestureDetector gestureDetector;
 
@@ -143,12 +143,12 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
                 intent.putExtra("startMillis", startMillis);
                 intent.putExtra("endMillis", endMillis);
                 intent.putExtra("frameUriStr", frameUriStr);
-                intent.putExtra("maskUriStr", maskUriStr);
+                intent.putExtra("fourChannelImageUriStr", fourChannelImageUriStr);
                 startActivity(intent);
             }
         } else if (view.getId() == R.id.retryButton) {
             points = new ArrayList<>();
-            maskUriStr = null;
+            fourChannelImageUriStr = null;
             imageView.setImageURI(Uri.parse(frameUriStr));
         }
     }
@@ -237,20 +237,20 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         }
     }
 
+    // TODO: 与后端测试通信
     private void readyToRequestMask() {
         List<String> imageFilesUri = new ArrayList<>();
         imageFilesUri.add(frameUriStr);
-        if (maskUriStr != null) {
-            imageFilesUri.add(maskUriStr);
-        }
         Gson gson = new Gson();
         String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
 
         Map<String, String> params = new HashMap<>();
-        String pointsJsonStr = gson.toJson(points);
-        params.put("pointsJsonStr", pointsJsonStr);
+        params.put("user", user);
+        params.put("type", "plane");
+        params.put("point_prompt", MyConverter.getPointPromptStr(points));
+        params.put("points", MyConverter.getPointsStr(points));
 
-        String url = "http://10.25.6.55:80/inpaint";
+        String url = "http://172.18.36.110:5005/SegmentFirstFrame";
 
         MyRequester.newThreadAndSendRequest(maskCallback, this, getContentResolver(),
                 null, null, imageFilesUriJsonStr,
@@ -265,13 +265,13 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         try {
 
             List<String> imagesUri = MyConverter.convertBase64ImagesToUris(GetPlaneActivity.this, response.getImages());
-            maskUriStr = imagesUri.get(0);
-            frameWithMaskUriStr = imagesUri.get(1);
+            paintedImageUriStr = imagesUri.get(0);
+            fourChannelImageUriStr = imagesUri.get(1);
 
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    imageView.setImageURI(Uri.parse(frameWithMaskUriStr));
+                    imageView.setImageURI(Uri.parse(paintedImageUriStr));
                 }
             });
 

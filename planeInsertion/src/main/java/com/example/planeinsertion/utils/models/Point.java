@@ -1,5 +1,7 @@
 package com.example.planeinsertion.utils.models;
 
+import java.util.List;
+
 public class Point {
     private int x;
     private int y;
@@ -46,4 +48,5 @@ public class Point {
     public void setIsLongPress(int isLongPress) {
         this.isLongPress = isLongPress;
     }
+
 }

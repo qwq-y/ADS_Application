@@ -10,6 +10,7 @@ import android.provider.MediaStore;
 import android.util.Base64;
 import android.util.Log;
 
+import com.example.planeinsertion.utils.models.Point;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -46,8 +47,8 @@ public class MyConverter  {
     }
 
     public static File saveBitmapToTempFile(Context context, Bitmap bitmap) throws IOException {
-        byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.JPEG, 100);
-        return saveToTempFile(context, imageData, ".jpg");
+        byte[] imageData = bitmapToByteArray(bitmap, Bitmap.CompressFormat.PNG, 100);
+        return saveToTempFile(context, imageData, ".png");
     }
 
     // 将Base64编码的视频数据保存为临时视频文件
@@ -163,4 +164,27 @@ public class MyConverter  {
         }
     }
 
+    public static String getPointPromptStr(List<Point> points) {
+        StringBuilder result = new StringBuilder();
+        for (Point point : points) {
+            int isLongPress = point.getIsLongPress();
+            int invertedValue = isLongPress == 0 ? 1 : 0; // 1: positive; 0: negative
+            result.append(invertedValue).append(",");
+        }
+        if (result.length() > 0) {
+            result.deleteCharAt(result.length() - 1); // Remove the trailing comma
+        }
+        return result.toString();
+    }
+
+    public static String getPointsStr(List<Point> points) {
+        StringBuilder result = new StringBuilder();
+        for (Point point : points) {
+            result.append(point.getX()).append(",").append(point.getY()).append(";");
+        }
+        if (result.length() > 0) {
+            result.deleteCharAt(result.length() - 1); // Remove the trailing semicolon
+        }
+        return result.toString();
+    }
 }

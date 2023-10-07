@@ -214,20 +214,20 @@ public class MyRequester {
                 Log.d(TAG, videoKey + " not found in reply");
             }
 
-            // 获取图像列表
-            String imagesKey = "Content";
-            if (jsonObject.has(imagesKey)) {
-                JSONArray imageArray = jsonObject.getJSONArray(imagesKey);
-                if (imageArray != null) {
+            // 获取预览图、四通道图
+            String paintedImageKey = "Painted_image";
+            String fourChannelImageKey = "FourChannelImage";
+            if (jsonObject.has(paintedImageKey) && jsonObject.has(fourChannelImageKey)) {
+                String paintedImage = jsonObject.getString(paintedImageKey);
+                String fourChannelImage = jsonObject.getString(fourChannelImageKey);
+                if (paintedImage != null && fourChannelImage != null) {
                     List<String> images = new ArrayList<>();
-                    for (int i = 0; i < imageArray.length(); i++) {
-                        String image = imageArray.getString(i);
-                        images.add(image);
-                    }
+                    images.add(paintedImage);
+                    images.add(fourChannelImage);
                     customResponse.setImages(images);
                 }
             } else {
-                Log.d(TAG, imagesKey + " not found in reply");
+                Log.d(TAG, "One or both images not found in reply");
             }
 
         } catch (JSONException e) {

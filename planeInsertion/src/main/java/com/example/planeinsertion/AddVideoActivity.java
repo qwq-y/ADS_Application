@@ -30,9 +30,11 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
 
     private String TAG = "ww";
 
+    String user = "qwq-y";
+
     private String videoUriStr;    // 原视频
     private String frameUriStr;    // 第一帧原图
-    private String maskUriStr;    // 掩码
+    private String fourChannelImageUriStr;    // 四通道图
     private String startMillis, endMillis;
 
     private String videoSourceUriStr;    // 准备插入的广告
@@ -56,7 +58,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         startMillis = getIntent().getStringExtra("startMillis");
         endMillis = getIntent().getStringExtra("endMillis");
         frameUriStr = getIntent().getStringExtra("frameUriStr");
-        maskUriStr = getIntent().getStringExtra("maskUriStr");
+        fourChannelImageUriStr = getIntent().getStringExtra("fourChannelImageUriStr");
 
         videoView = findViewById(R.id.videoView);
 
@@ -85,21 +87,21 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         if (v.getId() == R.id.okButton) {
 
             List<String> imageFilesUri = new ArrayList<>();
-            if (frameUriStr != null) {
-                imageFilesUri.add(frameUriStr);
-            }
-            if (maskUriStr != null) {
-                imageFilesUri.add(maskUriStr);
+//            if (frameUriStr != null) {
+//                imageFilesUri.add(frameUriStr);
+//            }
+            if (fourChannelImageUriStr != null) {
+                imageFilesUri.add(fourChannelImageUriStr);
             }
             Gson gson = new Gson();
             String imageFilesUriJsonStr = gson.toJson(imageFilesUri);
 
             Map<String, String> params = new HashMap<>();
-            params.put("startMillis", startMillis);
-            params.put("endMillis", endMillis);
+            params.put("user", user);
 
-            String url = "http://10.25.6.55:80/aigc";
+            String url = "http://172.18.36.110:5005/Track";
 
+            // TODO: 与后端测试通信
             MyRequester.newThreadAndSendRequest(new ResponseCallback() {
                                                     @Override
                                                     public void onSuccess(CustomResponse response) {
