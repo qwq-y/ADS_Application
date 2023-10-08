@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -110,7 +111,12 @@ public class MyRequester {
 
         Log.d(TAG, "to postADS");
 
-        OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)   // 设置连接超时时间为10秒
+                .readTimeout(100, TimeUnit.SECONDS)   // 设置读取超时时间为100秒
+                .writeTimeout(100, TimeUnit.SECONDS)   // 设置写入超时时间为100秒
+                .build();
+
 
         MultipartBody.Builder multipartBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);

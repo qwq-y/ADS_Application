@@ -31,9 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
-// TODO: 统一和后端的各个键名、url、图片收发顺序等
 // 这里在选择 mask 的时候申请了运行时权限（并且回调函数也是 mask 相关），所以必须选 mask。
+// TODO: 第一帧图片适应屏幕大小
 
 public class GetPlaneActivity extends AppCompatActivity implements View.OnClickListener, View.OnTouchListener {
 
@@ -48,9 +47,9 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private Button retryButton;
     private Button okButton;
     private TextView textView;
-    AlertDialog alertDialog;
+    private AlertDialog alertDialog;
 
-    String user = "lzl";
+    private String user = "lzl";
 
     private String videoUriStr;    // 视频
     private String frameUriStr;    // 视频第一帧
@@ -137,6 +136,7 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     @Override
     public void onClick(View view) {
         if (view.getId() == R.id.okButton) {
+            // TODO: 处理没有mask的情况（提示用户）
             if (hasMask) {
                 Intent intent = new Intent(this, AddVideoActivity.class);
                 intent.putExtra("videoUriStr", videoUriStr);
@@ -258,7 +258,7 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
 
     private void handleOnMaskSuccess(CustomResponse response) {
 
-        Log.d(TAG, "onSuccess callback");
+        Log.d(TAG, "onSuccess mask callback");
         hasMask = true;
 
         try {
@@ -271,6 +271,7 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
                 @Override
                 public void run() {
                     imageView.setImageURI(Uri.parse(paintedImageUriStr));
+                    textView.setText("请选取图中平面\n（单击选择区域，长按取消选择）");
                 }
             });
 

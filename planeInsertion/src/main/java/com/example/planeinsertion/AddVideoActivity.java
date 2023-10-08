@@ -2,6 +2,7 @@ package com.example.planeinsertion;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -30,7 +31,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
 
     private String TAG = "ww";
 
-    String user = "lzl";
+    private String user = "lzl";
 
     private String videoUriStr;    // 原视频
     private String frameUriStr;    // 第一帧原图
@@ -46,6 +47,8 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
     private Button okButton;
     private Button retryButton;
     private TextView textView;
+
+    private AlertDialog alertDialog;
 
     private static final int REQUEST_VIDEO_PICK = 1;
 
@@ -80,16 +83,19 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
         retryButton.setOnClickListener(this);
         retryButton.setVisibility(View.GONE);
 
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("生成中...");
+        builder.setMessage("");
+        builder.setCancelable(false);  // 设置对话框不可取消
+        alertDialog = builder.create();
     }
 
     @Override
     public void onClick(View v) {
         if (v.getId() == R.id.okButton) {
+            alertDialog.show();
 
             List<String> imageFilesUri = new ArrayList<>();
-//            if (frameUriStr != null) {
-//                imageFilesUri.add(frameUriStr);
-//            }
             if (fourChannelImageUriStr != null) {
                 imageFilesUri.add(fourChannelImageUriStr);
             }
@@ -105,16 +111,8 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
             MyRequester.newThreadAndSendRequest(new ResponseCallback() {
                                                     @Override
                                                     public void onSuccess(CustomResponse response) {
-                                                        Log.d(TAG, "onSuccess callback");
-                                                        try {
-                                                            String video = response.getVideo();
-                                                            generatedVideoUriStr = MyConverter.convertVideoToUri(AddVideoActivity.this, video);
-
-                                                        } catch (Exception e) {
-                                                            Log.e(TAG, "convert video: " + e.getMessage());
-                                                        }
+                                                        handleOnGenerateSuccess(response);
                                                     }
-
                                                     @Override
                                                     public void onError(String errorMessage) {
                                                         Log.e(TAG, "onError callback: " + errorMessage);
@@ -123,15 +121,26 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
                     videoUriStr, videoSourceUriStr,
                     imageFilesUriJsonStr,
                     params, url);
+        } else if (v.getId() == R.id.retryButton) {
+            pickVideo(v);
+        } else if (v.getId() == R.id.addButton) {
+            pickVideo(v);
+        }
+    }
+
+    private void handleOnGenerateSuccess(CustomResponse response) {
+        Log.d(TAG, "onSuccess generate callback");
+        try {
+            String video = response.getVideo();
+            generatedVideoUriStr = MyConverter.convertVideoToUri(AddVideoActivity.this, video);
+            Log.d(TAG, "generatedVideoUriStr: " + generatedVideoUriStr);
 
             Intent intent = new Intent(this, DisplayResultActivity.class);
             intent.putExtra("generatedVideoUriStr", generatedVideoUriStr);
             startActivity(intent);
 
-        } else if (v.getId() == R.id.retryButton) {
-            pickVideo(v);
-        } else if (v.getId() == R.id.addButton) {
-            pickVideo(v);
+        } catch (Exception e) {
+            Log.e(TAG, "convert video: " + e.getMessage());
         }
     }
 
