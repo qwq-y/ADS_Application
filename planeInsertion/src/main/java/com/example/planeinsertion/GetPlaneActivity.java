@@ -50,7 +50,7 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
     private TextView textView;
     AlertDialog alertDialog;
 
-    String user = "qwq-y";
+    String user = "lzl";
 
     private String videoUriStr;    // 视频
     private String frameUriStr;    // 视频第一帧
@@ -237,7 +237,6 @@ public class GetPlaneActivity extends AppCompatActivity implements View.OnClickL
         }
     }
 
-    // TODO: 与后端测试通信
     private void readyToRequestMask() {
         List<String> imageFilesUri = new ArrayList<>();
         imageFilesUri.add(frameUriStr);

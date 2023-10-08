@@ -30,7 +30,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
 
     private String TAG = "ww";
 
-    String user = "qwq-y";
+    String user = "lzl";
 
     private String videoUriStr;    // 原视频
     private String frameUriStr;    // 第一帧原图
@@ -109,6 +109,7 @@ public class AddVideoActivity extends AppCompatActivity implements View.OnClickL
                                                         try {
                                                             String video = response.getVideo();
                                                             generatedVideoUriStr = MyConverter.convertVideoToUri(AddVideoActivity.this, video);
+
                                                         } catch (Exception e) {
                                                             Log.e(TAG, "convert video: " + e.getMessage());
                                                         }

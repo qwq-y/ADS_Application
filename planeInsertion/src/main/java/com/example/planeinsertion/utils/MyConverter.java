@@ -142,7 +142,7 @@ public class MyConverter  {
         List<File> fileList = new ArrayList<>();
         for (int i = 0; i < stringList.size(); i++) {
             String uriString = stringList.get(i);
-            File imageFile = getImageFileFromUri(context, Uri.parse(uriString), "image_" + i, contentResolver);
+            File imageFile = getImageFileFromUri(context, Uri.parse(uriString), "image_" + i + ".png", contentResolver);
             fileList.add(imageFile);
         }
 

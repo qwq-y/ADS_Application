@@ -71,7 +71,10 @@ public class MyRequester {
 
         CompletableFuture<CustomResponse> future = new CompletableFuture<>();
 
-        File originalVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
+        File originalVideo = null;
+        if (originalVideoUriStr != null) {
+            originalVideo = MyConverter.getVideoFileFromUri(context, Uri.parse(originalVideoUriStr));
+        }
 
         List<File> videoFiles = new ArrayList<>();
         if (sourceVideoUriStr != null) {
@@ -130,7 +133,6 @@ public class MyRequester {
                 }
             }
         }
-        // TODO: 现在后端名字还不统一，有 image 也有 images
         if (imageFiles != null && !imageFiles.isEmpty()) {
             for (File image : imageFiles) {
                 if (image != null && image.exists()) {
@@ -206,9 +208,8 @@ public class MyRequester {
                 Log.d(TAG, messageKey + " not found in reply");
             }
 
-            // TODO: 和后端对接
             // 获取视频
-            String videoKey = "VideoBytes";
+            String videoKey = "video";
             if (jsonObject.has(videoKey)) {
                 String video = jsonObject.getString(videoKey);
                 if (video != null) {
